@@ -57,8 +57,9 @@ export function createGameController({ game, session, hud }) {
 
   function startHole(next) {
     hole = next;
+    timer = 0; // drop any pending settle / penalty from a shot still in the air
     game.loadHole(hole);
-    session.set({ strokes: 0, result: null, lookAhead: false });
+    session.set({ strokes: 0, result: null, lookAhead: false, mapOpen: false, bagOpen: false });
     setLie(hole.tee[0], hole.tee[2]);
   }
 

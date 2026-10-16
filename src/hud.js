@@ -5,7 +5,7 @@ import { hillFootprint } from './physics/terrain.js';
 // DOM overlay: hole badge, buttons, power meter, club chip, shot feedback, result card and the
 // overhead map. It reads the session and writes intents back to it; it never touches the 3D scene.
 
-export function createHUD(session, { onPlayAgain, onSelectClub }) {
+export function createHUD(session, { onPlayAgain, onSelectClub, onRestart }) {
   const el = (id) => document.getElementById(id);
   const ui = {
     num: el('hole-num'),
@@ -13,6 +13,7 @@ export function createHUD(session, { onPlayAgain, onSelectClub }) {
     meta: el('hole-meta'),
     sr: el('hole-sr'),
     mapBtn: el('btn-map'),
+    restartBtn: el('btn-restart'),
     lookBtn: el('btn-look'),
     sheet: el('map-sheet'),
     closeBtn: el('btn-map-close'),
@@ -49,6 +50,26 @@ export function createHUD(session, { onPlayAgain, onSelectClub }) {
   ui.closeBtn.addEventListener('click', () => session.set({ mapOpen: false }));
   ui.sheet.addEventListener('click', (e) => { if (e.target === ui.sheet) session.set({ mapOpen: false }); });
   ui.againBtn.addEventListener('click', () => { tap(); onPlayAgain(); });
+
+  // ----- Restart: with shots on the card, the first tap asks "Restart?" and the second confirms -----
+  let confirmTimer = 0;
+  const resetRestartBtn = () => {
+    clearTimeout(confirmTimer);
+    ui.restartBtn.classList.remove('is-confirm');
+    ui.restartBtn.setAttribute('aria-label', 'Restart hole');
+  };
+  ui.restartBtn.addEventListener('click', () => {
+    tap();
+    const nothingToLose = session.state.strokes === 0 && !session.state.result;
+    if (nothingToLose || ui.restartBtn.classList.contains('is-confirm')) {
+      resetRestartBtn();
+      onRestart();
+      return;
+    }
+    ui.restartBtn.classList.add('is-confirm');
+    ui.restartBtn.setAttribute('aria-label', 'Tap again to restart the hole and clear your strokes');
+    confirmTimer = setTimeout(resetRestartBtn, 3000);
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (session.state.mapOpen) session.set({ mapOpen: false });

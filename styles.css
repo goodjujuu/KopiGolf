@@ -73,6 +73,13 @@ body {
 .hud button { pointer-events: auto; }
 
 .hud-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.hud-top-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+
+/* Restart: a second tap confirms once any shots have been played */
+.restart-btn { width: auto; min-width: var(--btn); padding-inline: 12px; border-radius: 999px; gap: 6px; grid-auto-flow: column; }
+.restart-label { display: none; font-weight: 800; font-size: 14px; text-shadow: 0 1px 2px var(--ink-shade); }
+.restart-btn.is-confirm { background: var(--flag); border-color: rgba(255, 255, 255, 0.7); }
+.restart-btn.is-confirm .restart-label { display: inline; }
 .hud-mid { display: flex; justify-content: space-between; align-items: center; transform: translateY(-6%); }
 .hud-bottom { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 

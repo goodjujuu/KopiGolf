@@ -13,8 +13,10 @@ const loading = document.getElementById('loading');
 
 const session = createSession();
 const game = createGameScene(document.getElementById('scene'));
+const restartHole = () => controller.startHole(CATALOG.hole(session.state.holeIndex));
 const hud = createHUD(session, {
-  onPlayAgain: () => controller.startHole(CATALOG.hole(session.state.holeIndex)),
+  onPlayAgain: restartHole,
+  onRestart: restartHole,
   onSelectClub: (id) => controller.selectClub(id),
 });
 const controller = createGameController({ game, session, hud });
