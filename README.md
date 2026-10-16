@@ -1,7 +1,15 @@
-# KopiGolf — Step 1: Foundation
+# KopiGolf
 
 Low-poly 3D golf in the browser, styled after Golf Dreams. Runs on iPhone, Android and desktop.
-This step: project structure, screen scaling, and the idle scene (club waggling at the ball).
+Low-poly 3D golf in the browser. Play a hole with a swipe swing, then challenge friends.
+
+## How to play
+- **Swing:** drag down to pull the club back (further = more power), then flick up past where you started.
+  A quick flick keeps full power; a slow push loses some. Flick straight up to hit straight; drifting
+  left or right hooks or slices.
+- **Aim:** drag sideways before swinging.
+- On the green the putter takes over: pull back for distance, flick to roll.
+- Water costs a penalty stroke and you replay from where you hit.
 
 ## Run it locally
 Browsers block ES modules from file://, so serve the folder:
@@ -20,6 +28,9 @@ Friends open the link; on iPhone, Share → "Add to Home Screen" makes it full-s
     styles.css            HUD styling, safe areas, 44pt touch targets
     src/main.js           entry: wires state, scene, HUD; resize + pause handling
     src/state.js          the single game-state store (multiplayer/wagers extend this)
+    src/game/controller.js  rules of a hole: shots, penalties, scoring
+    src/input/swing.js    touch/mouse gesture -> aim, backswing, impact
+    src/physics/          ball flight/bounce/roll, surfaces, terrain (no 3D code; testable)
     src/config.js         every scaling number and colour palette
     src/scene.js          renderer, camera framing, lights, loop
     src/hud.js            badge, buttons, overhead map
@@ -38,3 +49,7 @@ add packs in src/courses/catalog.js. No new 3D code needed per hole.
 - Camera tilt is solved per screen so the ball always sits 74% down the screen.
 - HUD respects notch / Dynamic Island / home-indicator safe areas; buttons 48px (min 44).
 - Render resolution capped at 2x; rendering pauses when the tab is hidden.
+
+## Tuning the feel
+All swing and physics numbers are in `src/config.js` (`CLUBS`, `SWING`, `PHYSICS`):
+max carry, how far to drag for full power, flick speed, hook/slice strength, bounce and roll per surface.

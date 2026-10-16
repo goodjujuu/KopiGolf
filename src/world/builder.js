@@ -3,28 +3,11 @@ import { THEMES, SURFACE } from '../config.js';
 import { holeLength, holeAimYaw } from '../courses/catalog.js';
 import { lambert } from './materials.js';
 import { makePalm } from './palm.js';
+import { terrainHeight, HILL_SPREAD, HILL_SINK } from '../physics/terrain.js';
+import { SAND_RIM, GREEN_STRETCH } from '../physics/course.js';
 
 // Turns a hole's data into a low-poly 3D world built from primitives, so the first 100+ holes
 // need no 3D modelling. Hand-made models can replace individual pieces later.
-
-const HILL_SPREAD = 1.6; // mounds are squashed spheres, wider than tall
-const HILL_SINK = 0.45;  // fraction of the radius buried below ground
-
-export function terrainHeight(x, z, hills) {
-  let y = 0;
-  for (const [hx, hz, r] of hills) {
-    const dx = (x - hx) / (r * HILL_SPREAD);
-    const dz = (z - hz) / (r * HILL_SPREAD);
-    const d2 = dx * dx + dz * dz;
-    if (d2 < 1) y = Math.max(y, r * Math.sqrt(1 - d2) - r * HILL_SINK);
-  }
-  return y;
-}
-
-// Visible radius of a mound where it meets the ground (used by the overhead map too).
-export function hillFootprint(r) {
-  return r * HILL_SPREAD * Math.sqrt(1 - HILL_SINK * HILL_SINK);
-}
 
 export function buildWorld(hole) {
   const theme = THEMES[hole.theme];
@@ -73,7 +56,7 @@ function makeIsland(hole, theme) {
   const [cx, , cz] = hole.island.center;
   const r = hole.island.radius;
 
-  const sand = new THREE.Mesh(new THREE.CylinderGeometry(r + 5, r + 8, 2, 48), lambert(theme.sand));
+  const sand = new THREE.Mesh(new THREE.CylinderGeometry(r + SAND_RIM, r + SAND_RIM + 3, 2, 48), lambert(theme.sand));
   sand.position.set(cx, -1.25, cz); // top face at y = −0.25, just above the water
   g.add(sand);
 
@@ -108,7 +91,7 @@ function makeGreen(hole, theme) {
   const g = new THREE.Group();
   const disc = new THREE.Mesh(new THREE.CircleGeometry(hole.greenRadius, 36), lambert(theme.green));
   disc.rotation.x = -Math.PI / 2;
-  disc.scale.set(1.4, 1, 1); // oval greens read better from the tee
+  disc.scale.set(GREEN_STRETCH, 1, 1); // oval greens read better from the tee
   disc.position.set(hole.pin[0], SURFACE.green, hole.pin[2]);
   g.add(disc);
 

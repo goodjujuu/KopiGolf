@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { REDUCED_MOTION } from '../config.js';
+import { PHYSICS, REDUCED_MOTION } from '../config.js';
 
-export const BALL_RADIUS = 0.045; // a real golf ball is 42.7 mm across
+export const BALL_RADIUS = PHYSICS.ballRadius;
 
-// Flight and physics arrive in a later step. For now the ball rests and gently pulses so it
-// reads as the thing to interact with.
+// The ball's 3D mesh. Its motion comes from physics/ball.js; this only draws it.
+// While waiting for a shot it pulses gently so it reads as the thing to interact with.
 export function createBall() {
   const mesh = new THREE.Mesh(
     new THREE.SphereGeometry(BALL_RADIUS, 24, 16),
@@ -12,11 +12,16 @@ export function createBall() {
   );
   mesh.castShadow = true;
   mesh.name = 'ball';
+  let idle = true;
 
   return {
     mesh,
+    setIdle(on) {
+      idle = on;
+      if (!on) mesh.scale.setScalar(1);
+    },
     update(time) {
-      if (REDUCED_MOTION) return;
+      if (!idle || REDUCED_MOTION) return;
       mesh.scale.setScalar(1 + 0.04 * (0.5 + 0.5 * Math.sin(time * 3.4)));
     },
   };

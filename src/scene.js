@@ -1,15 +1,17 @@
 import * as THREE from 'three';
-import { LAYOUT, SURFACE, REDUCED_MOTION } from './config.js';
-import { holeAimYaw } from './courses/catalog.js';
+import { LAYOUT, DEG, REDUCED_MOTION } from './config.js';
 import { buildWorld } from './world/builder.js';
 import { createBall, BALL_RADIUS } from './entities/ball.js';
 import { createClub } from './entities/club.js';
 
-// Owns the renderer, camera, lights and the loop. The HUD never touches 3D objects;
-// it calls the methods returned here.
+// Owns the renderer, camera, lights and the frame loop. It draws whatever the game controller
+// tells it to; it has no game rules of its own.
 
-const DEG = Math.PI / 180;
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
+const AIM_DOTS = 16;
+const FOLLOW_BACK = 6;
+const FOLLOW_UP = 2.6;
+const CLUB_HIDE_DELAY = 0.7;
 
 export function createGameScene(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -36,50 +38,75 @@ export function createGameScene(canvas) {
 
   const ball = createBall();
   const club = createClub();
-  scene.add(ball.mesh, club.root);
+  const aimLine = makeAimLine();
+  scene.add(ball.mesh, club.root, aimLine.mesh);
 
   let world = null;
   let hole = null;
   let aimYaw = 0;
-  const ballPos = new THREE.Vector3();
+  let aimLength = 18;
+  let groundY = 0;
+  const lie = new THREE.Vector3();          // where the ball sits for the current shot
+  const flightDir = new THREE.Vector3();
+  const sunOffset = new THREE.Vector3();
   const shotPose = { pos: new THREE.Vector3(), quat: new THREE.Quaternion() };
   const lookPose = { pos: new THREE.Vector3(), quat: new THREE.Quaternion() };
+  const followPose = { pos: new THREE.Vector3(), quat: new THREE.Quaternion() };
+  const tmpMatrix = new THREE.Matrix4();
+  let cameraMode = 'shot'; // 'shot' | 'follow'
   let lookAhead = false;
   let snapCamera = true;
-  let viewW = 1;
-  let viewH = 1;
+  let clubHideTimer = 0;
 
   function loadHole(next) {
     hole = next;
     if (world) { scene.remove(world.group); world.dispose(); }
     world = buildWorld(hole);
     scene.add(world.group);
-
     sky.setColors(world.theme.skyTop, world.theme.skyHorizon);
     scene.background = new THREE.Color(world.theme.skyHorizon);
     scene.fog = new THREE.Fog(world.theme.skyHorizon, 80, 340);
-
-    aimYaw = holeAimYaw(hole);
-    ballPos.set(hole.tee[0], SURFACE.fairway + BALL_RADIUS, hole.tee[2]);
-    ball.mesh.position.copy(ballPos);
-    club.address(ballPos, aimYaw);
-
-    // Sun low and ahead-right of the player, so the shadow falls back toward the camera.
-    const sunOffset = new THREE.Vector3(5, 6, -7).applyAxisAngle(WORLD_UP, aimYaw);
-    sun.position.copy(ballPos).add(sunOffset);
-    sun.target.position.copy(ballPos);
-
-    lookAhead = false;
     snapCamera = true;
+  }
+
+  // Set up for the next shot: ball at its lie, club addressing it, camera behind.
+  function placeAtLie(p, yaw, length) {
+    lie.set(p.x, p.y, p.z);
+    groundY = p.y - BALL_RADIUS;
+    ball.mesh.position.copy(lie);
+    ball.mesh.visible = true;
+    ball.setIdle(true);
+    club.root.visible = true;
+    club.release();
+    aimLength = length;
+    cameraMode = 'shot';
+    lookAhead = false;
+    setAim(yaw);
+    aimLine.mesh.visible = true;
+  }
+
+  function setAim(yaw) {
+    aimYaw = yaw;
+    club.address(lie, aimYaw, groundY);
+    aimLine.place(lie, aimYaw, aimLength, groundY);
     computePoses();
+  }
+
+  function beginFlight(yaw) {
+    cameraMode = 'flight';
+    flightDir.set(-Math.sin(yaw), 0, -Math.cos(yaw));
+    aimLine.mesh.visible = false;
+    ball.setIdle(false);
+    clubHideTimer = CLUB_HIDE_DELAY;
+    lookAhead = false;
   }
 
   // Lock the horizontal field of view, then derive the vertical one from this screen's shape.
   function resize(width, height) {
-    viewW = Math.max(1, width);
-    viewH = Math.max(1, height);
-    renderer.setSize(viewW, viewH, false);
-    camera.aspect = viewW / viewH;
+    const w = Math.max(1, width);
+    const h = Math.max(1, height);
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
     const hFov = LAYOUT.horizontalFovDeg * DEG;
     const vFov = Math.max(2 * Math.atan(Math.tan(hFov / 2) / camera.aspect), LAYOUT.minVerticalFovDeg * DEG);
     camera.fov = vFov / DEG;
@@ -94,49 +121,72 @@ export function createGameScene(canvas) {
     const h = LAYOUT.cameraHeight;
     const back = LAYOUT.cameraBack;
     const vHalf = (camera.fov * DEG) / 2;
-    const fromCentre = (LAYOUT.ballScreenY - 0.5) * 2;         // 0 = centre, 1 = bottom edge
-    const belowAxis = Math.atan(fromCentre * Math.tan(vHalf)); // ball's angle below the view axis
-    const toBall = Math.atan2(h, back);                         // angle from camera down to the ball
+    const fromCentre = (LAYOUT.ballScreenY - 0.5) * 2;
+    const belowAxis = Math.atan(fromCentre * Math.tan(vHalf));
+    const toBall = Math.atan2(h, back);
     const pitch = -(toBall - belowAxis);
-
-    shotPose.pos.set(ballPos.x + Math.sin(aimYaw) * back, ballPos.y + h, ballPos.z + Math.cos(aimYaw) * back);
+    shotPose.pos.set(lie.x + Math.sin(aimYaw) * back, lie.y + h, lie.z + Math.cos(aimYaw) * back);
     shotPose.quat.setFromEuler(new THREE.Euler(pitch, aimYaw, 0, 'YXZ'));
 
     const pin = new THREE.Vector3(hole.pin[0], 0.5, hole.pin[2]);
-    lookPose.pos.copy(ballPos).lerp(pin, LAYOUT.lookAheadFraction);
-    lookPose.pos.y = LAYOUT.lookAheadHeight;
-    const m = new THREE.Matrix4().lookAt(lookPose.pos, pin, WORLD_UP);
-    lookPose.quat.setFromRotationMatrix(m);
+    lookPose.pos.copy(lie).lerp(pin, LAYOUT.lookAheadFraction);
+    lookPose.pos.y = Math.max(lookPose.pos.y, LAYOUT.lookAheadHeight);
+    tmpMatrix.lookAt(lookPose.pos, pin, WORLD_UP);
+    lookPose.quat.setFromRotationMatrix(tmpMatrix);
   }
-
-  function setLookAhead(on) { lookAhead = on; }
 
   // ---------- loop ----------
   const clock = new THREE.Clock();
   let rafId = 0;
   let paused = false;
   let onFirstFrame = null;
+  let onTick = null;
 
   function frame() {
     rafId = requestAnimationFrame(frame);
     const dt = Math.min(clock.getDelta(), 0.1);
     const t = clock.elapsedTime;
 
-    const target = lookAhead ? lookPose : shotPose;
+    onTick?.(dt, t); // game rules and physics run first
+
+    // Camera
+    let target;
+    let rate = 4.5;
+    if (cameraMode === 'flight') {
+      followPose.pos.copy(ball.mesh.position).addScaledVector(flightDir, -FOLLOW_BACK);
+      followPose.pos.y = Math.max(ball.mesh.position.y, groundY) + FOLLOW_UP;
+      tmpMatrix.lookAt(followPose.pos, ball.mesh.position, WORLD_UP);
+      followPose.quat.setFromRotationMatrix(tmpMatrix);
+      target = followPose;
+      rate = 3;
+    } else {
+      target = lookAhead ? lookPose : shotPose;
+    }
     if (snapCamera || REDUCED_MOTION) {
       camera.position.copy(target.pos);
       camera.quaternion.copy(target.quat);
       snapCamera = false;
     } else {
-      const k = 1 - Math.exp(-dt * 4.5);
+      const k = 1 - Math.exp(-dt * rate);
       camera.position.lerp(target.pos, k);
       camera.quaternion.slerp(target.quat, k);
     }
     sky.mesh.position.copy(camera.position);
 
+    // Keep the tight shadow box on whatever the player is watching.
+    const focus = cameraMode === 'flight' ? ball.mesh.position : lie;
+    sunOffset.set(5, 6, -7).applyAxisAngle(WORLD_UP, aimYaw);
+    sun.position.copy(focus).add(sunOffset);
+    sun.target.position.copy(focus);
+
+    if (clubHideTimer > 0) {
+      clubHideTimer -= dt;
+      if (clubHideTimer <= 0) club.root.visible = false;
+    }
+
     world?.update(t);
     ball.update(t);
-    club.update(t);
+    club.update(t, dt);
 
     renderer.render(scene, camera);
     if (onFirstFrame) { onFirstFrame(); onFirstFrame = null; }
@@ -144,10 +194,17 @@ export function createGameScene(canvas) {
 
   return {
     loadHole,
+    placeAtLie,
+    setAim,
+    beginFlight,
     resize,
-    setLookAhead,
-    start(firstFrameCallback) {
+    club,
+    setLookAhead(on) { lookAhead = on; },
+    setBallPosition(p) { ball.mesh.position.set(p.x, p.y, p.z); },
+    setBallVisible(on) { ball.mesh.visible = on; },
+    start(firstFrameCallback, tickCallback) {
       onFirstFrame = firstFrameCallback;
+      onTick = tickCallback;
       clock.start();
       frame();
     },
@@ -157,6 +214,31 @@ export function createGameScene(canvas) {
       paused = next;
       if (paused) cancelAnimationFrame(rafId);
       else { clock.getDelta(); frame(); }
+    },
+  };
+}
+
+// A row of small white dots on the ground showing where the shot is aimed.
+function makeAimLine() {
+  const geo = new THREE.CircleGeometry(0.045, 10);
+  geo.rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthWrite: false });
+  const mesh = new THREE.InstancedMesh(geo, mat, AIM_DOTS);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 1;
+  const m = new THREE.Matrix4();
+  return {
+    mesh,
+    place(from, yaw, length, groundY) {
+      const fx = -Math.sin(yaw);
+      const fz = -Math.cos(yaw);
+      for (let i = 0; i < AIM_DOTS; i++) {
+        const d = 0.6 + ((i + 1) / AIM_DOTS) * (length - 0.6);
+        const s = 1 + d * 0.06; // dots grow with distance so they stay visible
+        m.makeScale(s, 1, s).setPosition(from.x + fx * d, groundY + 0.012, from.z + fz * d);
+        mesh.setMatrixAt(i, m);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
     },
   };
 }

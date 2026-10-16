@@ -42,6 +42,48 @@ export const THEMES = {
 };
 
 export const METRES_TO_YARDS = 1.09361;
+export const DEG = Math.PI / 180;
+export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+// Clubs. The iron is used everywhere except the green, where the putter takes over.
+export const CLUBS = {
+  iron: { id: 'iron', name: 'Iron', maxCarry: 85, launchDeg: 30, maxBackswing: 1.75 },
+  putter: { id: 'putter', name: 'Putter', maxRoll: 16, maxBackswing: 0.7 },
+};
+
+// Swing gesture tuning. Distances are fractions of the stage height so every phone feels the same.
+export const SWING = {
+  startThresholdPx: 10,         // movement before we decide between aiming and swinging
+  fullDrawFraction: 0.28,       // pull down this much of the screen height = 100% power
+  reverseThresholdPx: 14,       // how far back up the finger must move to start the downswing
+  minPower: 0.05,               // smaller pull-backs are treated as accidental taps
+  idealFlickSeconds: 0.25,      // flick from the bottom back past the start in this time or less = full tempo
+  minTempo: 0.55,               // a very slow flick still hits, at 55% of the power (putts ignore tempo)
+  maxSlope: 0.5,                // sideways drift per pixel of flick that counts as fully crooked
+  maxDeviationDeg: 10,          // launch direction error for a fully crooked flick
+  maxCurve: 2.2,                // sideways bend (m/s²) for a fully crooked full-power flick
+  aimDegPerPx: 0.15,            // sideways drag to aim
+  maxAimOffsetDeg: 60,
+};
+
+// Ball physics. Units: metres, seconds.
+export const PHYSICS = {
+  gravity: 9.81,
+  ballRadius: 0.045,     // a real golf ball is 42.7 mm across
+  airDrag: 0.08,
+  carryCompensation: 1.09, // calibrated so a 100% shot carries the club's maxCarry
+  minBounceSpeed: 1.2,
+  restSpeed: 0.08,
+  cupRadius: 0.11,       // generous for touch play (a real cup is 0.054 m)
+  captureSpeed: 2.6,     // roll slower than this over the cup and it drops
+  // bounce: vertical speed kept · keep: horizontal speed kept on a bounce · roll: rolling friction
+  surfaces: {
+    green: { bounce: 0.25, keep: 0.55, roll: 0.16 },
+    fairway: { bounce: 0.3, keep: 0.6, roll: 0.32 },
+    rough: { bounce: 0.22, keep: 0.45, roll: 0.6 },
+    sand: { bounce: 0.08, keep: 0.25, roll: 1.4 },
+  },
+};
 
 export const REDUCED_MOTION =
   typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;

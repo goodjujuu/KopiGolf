@@ -7,7 +7,13 @@ export function createSession() {
     holeIndex: 0,
     hole: null,
     strokes: 0,
-    phase: 'idle',      // 'idle' → (next steps) 'swinging' → 'flight' → 'putting' → 'holed'
+    phase: 'idle',      // 'idle' → 'swing' → 'flight' → 'settle' → 'idle' …, or 'penalty' / 'holed'
+    club: 'iron',       // 'iron' | 'putter'
+    lieSurface: 'fairway',
+    toPin: 0,           // metres from the ball to the pin
+    ballAt: null,       // { x, z } of the ball's current lie
+    result: null,       // { title, strokes, par } once the ball is in the cup
+    hintSeen: false,    // hide the swing instructions after the first shot
     mapOpen: false,
     lookAhead: false,
   };

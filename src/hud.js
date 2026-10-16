@@ -1,11 +1,11 @@
-import { METRES_TO_YARDS, THEMES } from './config.js';
+import { METRES_TO_YARDS, THEMES, CLUBS } from './config.js';
 import { holeLength, holeAimYaw } from './courses/catalog.js';
-import { hillFootprint } from './world/builder.js';
+import { hillFootprint } from './physics/terrain.js';
 
-// DOM overlay: hole badge, map and binocular buttons, the overhead map sheet.
-// It reads the session and writes intents back to it; it never touches the 3D scene.
+// DOM overlay: hole badge, buttons, power meter, club chip, shot feedback, result card and the
+// overhead map. It reads the session and writes intents back to it; it never touches the 3D scene.
 
-export function createHUD(session) {
+export function createHUD(session, { onPlayAgain }) {
   const el = (id) => document.getElementById(id);
   const ui = {
     num: el('hole-num'),
@@ -20,6 +20,19 @@ export function createHUD(session) {
     mapTitle: el('map-title'),
     mapDist: el('map-dist'),
     mapCanvas: el('map-canvas'),
+    power: el('power'),
+    powerFill: el('power-fill'),
+    powerLabel: el('power-label'),
+    hint: el('swing-hint'),
+    clubChip: el('club-chip'),
+    toast: el('toast'),
+    toastTitle: el('toast-title'),
+    toastSub: el('toast-sub'),
+    result: el('result'),
+    resultKicker: el('result-kicker'),
+    resultTitle: el('result-title'),
+    resultLine: el('result-line'),
+    againBtn: el('btn-again'),
   };
 
   const tap = () => { try { navigator.vibrate?.(8); } catch { /* not supported on iPhone */ } };
@@ -28,20 +41,28 @@ export function createHUD(session) {
   ui.lookBtn.addEventListener('click', () => { tap(); session.set({ lookAhead: !session.state.lookAhead }); });
   ui.closeBtn.addEventListener('click', () => session.set({ mapOpen: false }));
   ui.sheet.addEventListener('click', (e) => { if (e.target === ui.sheet) session.set({ mapOpen: false }); });
+  ui.againBtn.addEventListener('click', () => { tap(); onPlayAgain(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && session.state.mapOpen) session.set({ mapOpen: false }); });
 
   let lastMapOpen = false;
+  let lastResult = null;
   session.subscribe((s) => {
+    const yardsToPin = Math.round((s.toPin ?? 0) * METRES_TO_YARDS);
     if (s.hole) {
-      const yards = Math.round(holeLength(s.hole) * METRES_TO_YARDS);
+      const holeYards = Math.round(holeLength(s.hole) * METRES_TO_YARDS);
       ui.num.textContent = s.hole.number;
       ui.name.textContent = s.hole.name;
-      ui.meta.textContent = `Par ${s.hole.par} · ${yards} yd · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
-      ui.sr.textContent = `Hole ${s.hole.number}, ${s.hole.name}, par ${s.hole.par}, ${yards} yards.`;
+      ui.meta.textContent = `Par ${s.hole.par} · ${holeYards} yd · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
+      ui.sr.textContent = `Hole ${s.hole.number}, ${s.hole.name}, par ${s.hole.par}, ${s.strokes} strokes so far.`;
       ui.mapKicker.textContent = `Hole ${s.hole.number} · Par ${s.hole.par}`;
       ui.mapTitle.textContent = s.hole.name;
-      ui.mapDist.textContent = `${yards} yd to the pin`;
+      ui.mapDist.textContent = `${yardsToPin} yd to the pin`;
     }
+    const club = CLUBS[s.club] ?? CLUBS.iron;
+    ui.clubChip.textContent = `${club.name} · ${yardsToPin} yd to pin`;
+    ui.clubChip.hidden = s.phase !== 'idle' && s.phase !== 'swing';
+    ui.hint.hidden = Boolean(s.hintSeen) || (s.phase !== 'idle' && s.phase !== 'swing');
+
     ui.mapBtn.setAttribute('aria-pressed', String(s.mapOpen));
     ui.lookBtn.setAttribute('aria-pressed', String(s.lookAhead));
     ui.lookBtn.setAttribute('aria-label', s.lookAhead ? 'Back to the ball' : 'Look toward the pin');
@@ -50,18 +71,51 @@ export function createHUD(session) {
       lastMapOpen = s.mapOpen;
       ui.sheet.hidden = !s.mapOpen;
       if (s.mapOpen) {
-        drawMap(ui.mapCanvas, s.hole);
+        drawMap(ui.mapCanvas, s.hole, s.ballAt);
         ui.closeBtn.focus({ preventScroll: true });
       } else {
         ui.mapBtn.focus({ preventScroll: true });
       }
     }
+
+    if (s.result !== lastResult) {
+      lastResult = s.result;
+      ui.result.hidden = !s.result;
+      if (s.result) {
+        ui.resultKicker.textContent = s.hole ? `Hole ${s.hole.number} · ${s.hole.name}` : '';
+        ui.resultTitle.textContent = s.result.title;
+        ui.resultLine.textContent = `${s.result.strokes} ${s.result.strokes === 1 ? 'stroke' : 'strokes'} on a par ${s.result.par}`;
+        ui.againBtn.focus({ preventScroll: true });
+      }
+    }
   });
+
+  let toastTimer = 0;
+  return {
+    // Vertical meter that fills as you pull the club back. Pass null to hide it.
+    showPower(fraction) {
+      if (fraction === null) { ui.power.classList.remove('is-on'); return; }
+      ui.power.classList.add('is-on');
+      ui.power.classList.toggle('is-max', fraction >= 0.98);
+      ui.powerFill.style.transform = `scaleY(${fraction})`;
+      ui.powerLabel.textContent = `${Math.round(fraction * 100)}%`;
+    },
+    // Short message in the upper part of the screen, e.g. "Perfect!" after a shot.
+    toast(title, sub = '') {
+      ui.toastTitle.textContent = title;
+      ui.toastSub.textContent = sub;
+      ui.toast.classList.remove('is-on');
+      void ui.toast.offsetWidth; // restart the entry animation
+      ui.toast.classList.add('is-on');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => ui.toast.classList.remove('is-on'), 1900);
+    },
+  };
 }
 
 // Overhead map drawn from the same hole data as the 3D world, rotated so the tee is at the
 // bottom and the pin is at the top.
-function drawMap(canvas, hole) {
+function drawMap(canvas, hole, ballAt) {
   if (!hole) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const cssW = canvas.clientWidth;
@@ -124,18 +178,24 @@ function drawMap(canvas, hole) {
 
   // Target line
   const tee = P(tx, tz);
+  const from = ballAt ? P(ballAt.x, ballAt.z) : tee;
   ctx.setLineDash([4, 5]);
   ctx.strokeStyle = 'rgba(255,255,255,0.9)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(tee.x, tee.y);
+  ctx.moveTo(from.x, from.y);
   ctx.lineTo(pin.x, pin.y);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Tee and flag
+  // Tee, ball and flag
   circle(ctx, tee.x, tee.y, 6, '#163a2a');
   circle(ctx, tee.x, tee.y, 4, '#ffffff');
+  if (ballAt && Math.hypot(ballAt.x - tx, ballAt.z - tz) > 1) {
+    const b = P(ballAt.x, ballAt.z);
+    circle(ctx, b.x, b.y, 6, '#163a2a');
+    circle(ctx, b.x, b.y, 4, '#ffd84a');
+  }
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2;
   ctx.beginPath();

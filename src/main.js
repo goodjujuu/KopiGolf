@@ -2,16 +2,22 @@ import { createSession } from './state.js';
 import { CATALOG } from './courses/catalog.js';
 import { createGameScene } from './scene.js';
 import { createHUD } from './hud.js';
+import { createGameController } from './game/controller.js';
+import { createSwingInput } from './input/swing.js';
 
-// Entry point: wires state, 3D scene and HUD together, and handles screen-level concerns
-// (resizing, pausing in the background, blocking browser gestures that fight the game).
+// Entry point: wires state, 3D scene, rules, input and HUD together, and handles screen-level
+// concerns (resizing, pausing in the background, blocking browser gestures that fight the game).
 
 const stage = document.getElementById('stage');
 const loading = document.getElementById('loading');
 
 const session = createSession();
 const game = createGameScene(document.getElementById('scene'));
-createHUD(session);
+const hud = createHUD(session, {
+  onPlayAgain: () => controller.startHole(CATALOG.hole(session.state.holeIndex)),
+});
+const controller = createGameController({ game, session, hud });
+createSwingInput(stage, controller.input);
 
 // React to state changes: load holes, toggle the binocular camera.
 let loadedHoleIndex = -1;
@@ -20,8 +26,8 @@ session.subscribe((s) => {
     loadedHoleIndex = s.holeIndex;
     const hole = CATALOG.hole(s.holeIndex);
     if (hole) {
-      game.loadHole(hole);
-      session.set({ hole, strokes: 0, phase: 'idle', lookAhead: false });
+      session.set({ hole });
+      controller.startHole(hole);
     }
   }
   game.setLookAhead(s.lookAhead);
@@ -43,8 +49,11 @@ for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
 }
 stage.addEventListener('contextmenu', (e) => e.preventDefault());
 
-game.start(() => {
-  clearTimeout(window.__kgFail);
-  loading.classList.add('is-done');
-  setTimeout(() => { loading.hidden = true; }, 600);
-});
+game.start(
+  () => {
+    clearTimeout(window.__kgFail);
+    loading.classList.add('is-done');
+    setTimeout(() => { loading.hidden = true; }, 600);
+  },
+  (dt) => controller.update(dt)
+);
