@@ -22,13 +22,22 @@
 
   <div class="hud">
     <header class="hud-top">
-      <div class="badge" role="status" aria-live="polite">
-        <span class="badge-num" id="hole-num" aria-hidden="true">1</span>
-        <span class="badge-text">
-          <span class="badge-name" id="hole-name">Loading</span>
-          <span class="badge-meta" id="hole-meta"></span>
-        </span>
-        <span class="visually-hidden" id="hole-sr"></span>
+      <button class="hud-btn" id="btn-home" type="button" aria-label="Back to home">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9h11v-9"/></svg>
+      </button>
+      <div class="hud-top-left">
+        <div class="badge" role="status" aria-live="polite">
+          <span class="badge-num" id="hole-num" aria-hidden="true">1</span>
+          <span class="badge-text">
+            <span class="badge-name" id="hole-name">Loading</span>
+            <span class="badge-meta" id="hole-meta"></span>
+          </span>
+          <span class="visually-hidden" id="hole-sr"></span>
+        </div>
+        <p class="wind-chip" id="wind-chip" hidden>
+          <svg class="wind-arrow" id="wind-arrow" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3 18 13h-4v8h-4v-8H6z" fill="currentColor"/></svg>
+          <span id="wind-text">0 mph</span>
+        </p>
       </div>
       <div class="hud-top-actions">
         <button class="hud-btn restart-btn" id="btn-restart" type="button" aria-label="Restart hole">
@@ -114,6 +123,48 @@
       <button class="primary-btn" id="btn-again" type="button">Play again</button>
     </div>
   </div>
+
+  <section class="home" id="home" aria-labelledby="home-title">
+    <div class="home-inner">
+      <header class="home-head">
+        <p class="home-kicker">Pocket golf with your kakis</p>
+        <h1 class="home-title" id="home-title">Kopi<span>Golf</span></h1>
+      </header>
+
+      <div class="home-cards">
+      <div class="home-card">
+        <div class="home-card-head">
+          <h2>Practice</h2>
+          <p>Coconut Run · Par 3 · 68 yd</p>
+        </div>
+        <fieldset class="seg-field">
+          <legend>Time of day</legend>
+          <div class="seg">
+            <input type="radio" name="timeOfDay" id="tod-day" value="day" checked><label for="tod-day">Day</label>
+            <input type="radio" name="timeOfDay" id="tod-sunset" value="sunset"><label for="tod-sunset">Sunset</label>
+            <input type="radio" name="timeOfDay" id="tod-night" value="night"><label for="tod-night">Night</label>
+          </div>
+        </fieldset>
+        <fieldset class="seg-field">
+          <legend>Wind</legend>
+          <div class="seg">
+            <input type="radio" name="wind" id="wind-calm" value="calm" checked><label for="wind-calm">Calm</label>
+            <input type="radio" name="wind" id="wind-breezy" value="breezy"><label for="wind-breezy">Breezy</label>
+            <input type="radio" name="wind" id="wind-windy" value="windy"><label for="wind-windy">Windy</label>
+          </div>
+        </fieldset>
+        <button class="primary-btn" id="btn-practice" type="button">Start practice</button>
+      </div>
+
+      <div class="home-card is-soon">
+        <div class="home-card-head">
+          <h2>Play with friends</h2>
+          <p>Start or join a game and wager KopiBucks. Coming in a later update.</p>
+        </div>
+      </div>
+      </div>
+    </div>
+  </section>
 
   <div class="loading" id="loading">
     <p class="loading-text">Teeing up…</p>

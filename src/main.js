@@ -4,6 +4,7 @@ import { createGameScene } from './scene.js';
 import { createHUD } from './hud.js';
 import { createGameController } from './game/controller.js';
 import { createSwingInput } from './input/swing.js';
+import { createHome, loadSavedSettings } from './ui/home.js';
 
 // Entry point: wires state, 3D scene, rules, input and HUD together, and handles screen-level
 // concerns (resizing, pausing in the background, blocking browser gestures that fight the game).
@@ -12,28 +13,43 @@ const stage = document.getElementById('stage');
 const loading = document.getElementById('loading');
 
 const session = createSession();
+session.set({ settings: loadSavedSettings() });
 const game = createGameScene(document.getElementById('scene'));
-const restartHole = () => controller.startHole(CATALOG.hole(session.state.holeIndex));
+
+// Practice mode always plays the practice map. (Match play will choose holes from CATALOG.)
+let currentHole = CATALOG.practice;
+const restartHole = () => controller.startHole(currentHole);
+const goHome = () => session.set({ screen: 'home', mapOpen: false, bagOpen: false });
+
 const hud = createHUD(session, {
   onPlayAgain: restartHole,
   onRestart: restartHole,
+  onHome: goHome,
   onSelectClub: (id) => controller.selectClub(id),
 });
 const controller = createGameController({ game, session, hud });
 createSwingInput(stage, controller.input);
 
-// React to state changes: load holes, toggle the binocular camera.
-let loadedHoleIndex = -1;
+createHome(session, {
+  onStartPractice: (settings) => {
+    currentHole = CATALOG.practice;
+    session.set({ screen: 'play', mode: 'practice', settings, hole: currentHole });
+    controller.startHole(currentHole, settings);
+  },
+});
+
+// The course sits behind the home screen as a live backdrop, seen from the look-ahead camera.
+session.set({ hole: currentHole });
+controller.startHole(currentHole);
+
+let lastTimeOfDay = session.state.settings.timeOfDay;
 session.subscribe((s) => {
-  if (s.holeIndex !== loadedHoleIndex) {
-    loadedHoleIndex = s.holeIndex;
-    const hole = CATALOG.hole(s.holeIndex);
-    if (hole) {
-      session.set({ hole });
-      controller.startHole(hole);
-    }
+  game.setLookAhead(s.lookAhead || s.screen === 'home');
+  // Preview the time of day while choosing it on the home screen.
+  if (s.settings.timeOfDay !== lastTimeOfDay) {
+    lastTimeOfDay = s.settings.timeOfDay;
+    game.setTimeOfDay(lastTimeOfDay);
   }
-  game.setLookAhead(s.lookAhead);
 });
 
 // Resize whenever the stage changes size: rotation, browser bars sliding, desktop windows.

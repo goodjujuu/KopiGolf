@@ -15,7 +15,8 @@ export function buildWorld(hole) {
   group.name = `world:${hole.id}`;
   const animated = [];
 
-  group.add(makeWater(theme));
+  const water = makeWater(theme);
+  group.add(water);
   group.add(makeIsland(hole, theme));
   group.add(makeFairway(hole, theme));
   group.add(makeGreen(hole, theme));
@@ -35,6 +36,7 @@ export function buildWorld(hole) {
     group,
     theme,
     update(time) { for (const a of animated) a.update(time); },
+    setWaterGlow(v) { water.material.emissiveIntensity = v; },
     dispose() { group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); }); },
   };
 }

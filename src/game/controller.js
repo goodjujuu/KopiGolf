@@ -1,5 +1,5 @@
-import { CLUBS, CLUB_ORDER, FULL_BACKSWING, SWING, PHYSICS, DEG, METRES_TO_YARDS, clamp } from '../config.js';
-import { createBallBody, placeBody, launchBody, stepBody, planShot } from '../physics/ball.js';
+import { CLUBS, CLUB_ORDER, FULL_BACKSWING, SWING, PHYSICS, WIND_LEVELS, DEG, METRES_TO_YARDS, clamp } from '../config.js';
+import { createBallBody, placeBody, launchBody, stepBody, planShot, predictFlight } from '../physics/ball.js';
 
 // The rules of a hole: whose turn it is to swing, what a swing does to the ball, what happens
 // when it lands, scoring. It drives the 3D scene and the HUD but owns no drawing itself.
@@ -40,6 +40,14 @@ export function suggestClub(distanceMetres, surface) {
   return reaching.length ? reaching.reduce((a, b) => (b.yards < a.yards ? b : a)) : CLUBS.D;
 }
 
+// A fresh wind for a hole. yaw is the direction it blows TOWARD (0 = toward −z, like aim yaw).
+export function drawWind(level, random = Math.random) {
+  const { min, max } = WIND_LEVELS[level] ?? WIND_LEVELS.calm;
+  const speed = min + (max - min) * random();
+  const yaw = random() * Math.PI * 2;
+  return { speed, yaw, x: -Math.sin(yaw) * speed, z: -Math.cos(yaw) * speed };
+}
+
 export function createGameController({ game, session, hud }) {
   const body = createBallBody();
   let hole = null;
@@ -49,17 +57,21 @@ export function createGameController({ game, session, hud }) {
   let aimYaw = 0;
   let phase = 'idle';
   let timer = 0;
+  let wind = drawWind('calm');
 
   function setPhase(p) {
     phase = p;
     session.set({ phase: p });
   }
 
-  function startHole(next) {
+  // settings: { timeOfDay: 'day' | 'sunset' | 'night', wind: 'calm' | 'breezy' | 'windy' }
+  function startHole(next, settings = session.state.settings) {
     hole = next;
     timer = 0; // drop any pending settle / penalty from a shot still in the air
+    wind = drawWind(settings.wind);
     game.loadHole(hole);
-    session.set({ strokes: 0, result: null, lookAhead: false, mapOpen: false, bagOpen: false });
+    game.setTimeOfDay(settings.timeOfDay);
+    session.set({ strokes: 0, result: null, lookAhead: false, mapOpen: false, bagOpen: false, wind });
     setLie(hole.tee[0], hole.tee[2]);
   }
 
@@ -75,14 +87,28 @@ export function createGameController({ game, session, hud }) {
     aimYaw = baseYaw;
     const toPin = distanceToPin(x, z);
     club = suggestClub(toPin, body.surface);
-    game.placeAtLie(body.p, aimYaw, aimLengthFor(club, toPin));
+    game.placeAtLie(body.p, aimYaw);
     game.setClubKind(club.kind);
-    session.set({ club: club.id, suggestedClub: club.id, lieSurface: body.surface, toPin, ballAt: { x, z } });
+    session.set({ club: club.id, suggestedClub: club.id, lieSurface: body.surface, toPin, ballAt: { x, z }, aimYaw });
+    updateGuide();
     setPhase('idle');
   }
 
-  function aimLengthFor(c, toPin) {
-    return c.kind === 'putter' ? clamp(toPin, 1.5, 10) : 18;
+  // Launch numbers for a non-putter at a given power (0..1).
+  function flightFor(c, power) {
+    const launchRad = c.launchDeg * DEG;
+    const carry = Math.max(1, (c.yards / METRES_TO_YARDS) * power);
+    return { carry, launchRad, ...planShot(carry, launchRad) };
+  }
+
+  // Dotted arc of a full-power, straight, windless shot with the club in hand (ground dots for putts).
+  function updateGuide() {
+    if (club.kind === 'putter') {
+      game.setGuide({ kind: 'ground', length: clamp(session.state.toPin, 1.5, 10) });
+      return;
+    }
+    const { speed, launchRad } = flightFor(club, 1);
+    game.setGuide({ kind: 'arc', points: predictFlight(hole, body.p, { yaw: aimYaw, speed, launchRad }) });
   }
 
   // Player picked a club from the bag.
@@ -90,7 +116,7 @@ export function createGameController({ game, session, hud }) {
     if (!CLUBS[id] || (phase !== 'idle')) return;
     club = CLUBS[id];
     game.setClubKind(club.kind);
-    game.setAimLength(aimLengthFor(club, session.state.toPin));
+    updateGuide();
     session.set({ club: club.id });
   }
 
@@ -106,13 +132,11 @@ export function createGameController({ game, session, hud }) {
       const yaw = aimYaw - shot.deviation * SWING.maxDeviationDeg * 0.25 * DEG;
       launchBody(body, { yaw, speed, launchRad: 0, curve: 0 });
     } else {
-      const launch = club.launchDeg * DEG;
-      const carry = Math.max(1, (club.yards / METRES_TO_YARDS) * shot.power);
-      const { speed, time } = planShot(carry, launch);
+      const { carry, speed, time, launchRad } = flightFor(club, shot.power);
       const yaw = aimYaw - shot.deviation * SWING.maxDeviationDeg * 0.5 * DEG; // right flick → right
       // Sideways bend sized so a fully crooked flick misses by curveMissFraction of the carry.
       const curve = (2 * SWING.curveMissFraction * carry * shot.deviation) / (time * time);
-      launchBody(body, { yaw, speed, launchRad: launch, curve });
+      launchBody(body, { yaw, speed, launchRad, curve, wind });
     }
 
     game.beginFlight(aimYaw);
@@ -123,7 +147,7 @@ export function createGameController({ game, session, hud }) {
 
   // Called by the swing gesture.
   const input = {
-    canStart: () => phase === 'idle' && !session.state.mapOpen && !session.state.bagOpen,
+    canStart: () => session.state.screen === 'play' && phase === 'idle' && !session.state.mapOpen && !session.state.bagOpen,
     begin() {
       if (session.state.lookAhead) session.set({ lookAhead: false });
     },
@@ -131,6 +155,8 @@ export function createGameController({ game, session, hud }) {
       const max = SWING.maxAimOffsetDeg * DEG;
       aimYaw = clamp(aimYaw - dxPixels * SWING.aimDegPerPx * DEG, baseYaw - max, baseYaw + max);
       game.setAim(aimYaw);
+      updateGuide();
+      session.set({ aimYaw });
     },
     back(fraction) {
       if (phase !== 'swing') setPhase('swing');

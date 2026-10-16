@@ -20,6 +20,7 @@ MODULES = [
     "src/config.js",
     "src/state.js",
     "src/courses/pack01.js",
+    "src/courses/practice.js",
     "src/courses/catalog.js",
     "src/physics/terrain.js",
     "src/physics/course.js",
@@ -33,6 +34,7 @@ MODULES = [
     "src/input/swing.js",
     "src/game/controller.js",
     "src/hud.js",
+    "src/ui/home.js",
     "src/main.js",
 ]
 

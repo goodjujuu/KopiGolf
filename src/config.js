@@ -42,6 +42,39 @@ export const THEMES = {
 };
 
 export const METRES_TO_YARDS = 1.09361;
+export const MS_TO_MPH = 2.23694;
+
+// Wind settings offered before a round. Speeds in m/s; a new wind is drawn for every hole.
+export const WIND_LEVELS = {
+  calm: { label: 'Calm', min: 0, max: 0 },
+  breezy: { label: 'Breezy', min: 2, max: 5 },
+  windy: { label: 'Windy', min: 5, max: 9 },
+};
+
+// Time-of-day lighting. Sky and light colours here override the course theme's sky.
+export const LIGHTING = {
+  day: {
+    label: 'Day',
+    skyTop: 0x5fc4f2, skyHorizon: 0xc9f0fb, fogNear: 80, fogFar: 340,
+    hemiSky: 0xffffff, hemiGround: 0x5d8f3a, hemiIntensity: 1.4,
+    sunColor: 0xfff1dc, sunIntensity: 2.2, sunOffset: [5, 6, -7],
+    waterGlow: 0.25, ballGlow: 0, stars: false,
+  },
+  sunset: {
+    label: 'Sunset',
+    skyTop: 0x8fa6d8, skyHorizon: 0xffd2a1, fogNear: 70, fogFar: 320,
+    hemiSky: 0xffe2c4, hemiGround: 0x4f6b3a, hemiIntensity: 1.1,
+    sunColor: 0xffb074, sunIntensity: 2.0, sunOffset: [6, 2.6, -7],
+    waterGlow: 0.18, ballGlow: 0.05, stars: false,
+  },
+  night: {
+    label: 'Night',
+    skyTop: 0x071331, skyHorizon: 0x223a66, fogNear: 50, fogFar: 260,
+    hemiSky: 0x8fa8ff, hemiGround: 0x1b2a1a, hemiIntensity: 0.55,
+    sunColor: 0xbcd0ff, sunIntensity: 0.95, sunOffset: [-4, 7, -6],
+    waterGlow: 0.06, ballGlow: 0.45, stars: true,
+  },
+};
 export const DEG = Math.PI / 180;
 export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
@@ -86,6 +119,7 @@ export const PHYSICS = {
   gravity: 9.81,
   ballRadius: 0.045,     // a real golf ball is 42.7 mm across
   airDrag: 0.08,
+  windPush: 0.12,        // m/s² of push per m/s of wind while the ball is airborne
   minBounceSpeed: 1.2,
   restSpeed: 0.08,
   cupRadius: 0.11,       // generous for touch play (a real cup is 0.054 m)

@@ -10,6 +10,11 @@ Low-poly 3D golf in the browser. Play a hole with a swipe swing, then challenge 
 - **Aim:** drag sideways before swinging.
 - On the green the putter takes over: pull back for distance, flick to roll.
 - Water costs a penalty stroke and you replay from where you hit.
+- Tap the club chip at the bottom to pick a club. The dotted arc shows a full-power, straight
+  shot with that club (it ignores wind and hook/slice, so reading those is up to you).
+- Practice: choose Day / Sunset / Night and Calm / Breezy / Windy on the home screen.
+  The wind chip under the hole badge shows speed, and its arrow points where the wind blows
+  (up = helping you).
 
 ## Run it locally
 Browsers block ES modules from file://, so serve the folder:
@@ -30,7 +35,9 @@ Friends open the link; on iPhone, Share → "Add to Home Screen" makes it full-s
     src/state.js          the single game-state store (multiplayer/wagers extend this)
     src/game/controller.js  rules of a hole: shots, penalties, scoring
     src/input/swing.js    touch/mouse gesture -> aim, backswing, impact
-    src/physics/          ball flight/bounce/roll, surfaces, terrain (no 3D code; testable)
+    src/physics/          ball flight/bounce/roll, wind, guide arc, surfaces, terrain (no 3D code; testable)
+    src/ui/home.js        home screen and practice options
+    src/courses/practice.js  the practice map (Practice mode only)
     src/config.js         every scaling number and colour palette
     src/scene.js          renderer, camera framing, lights, loop
     src/hud.js            badge, buttons, overhead map

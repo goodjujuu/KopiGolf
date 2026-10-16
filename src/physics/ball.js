@@ -14,6 +14,7 @@ export function createBallBody() {
     p: { x: 0, y: 0, z: 0 },
     v: { x: 0, y: 0, z: 0 },
     side: { x: 0, z: 0 }, // sideways acceleration from a crooked swing (hook / slice)
+    wind: { x: 0, z: 0 }, // push from the wind while airborne (m/s²)
     state: 'rest',
     surface: 'fairway',
     bounces: 0,
@@ -33,7 +34,8 @@ export function placeBody(body, hole, x, z) {
 }
 
 // yaw: direction (radians about +y, 0 = toward −z). curve: sideways m/s², positive bends right.
-export function launchBody(body, { yaw, speed, launchRad, curve }) {
+// wind: { x, z } wind velocity in m/s (or null for none); it pushes the ball while in the air.
+export function launchBody(body, { yaw, speed, launchRad, curve, wind = null }) {
   const fx = -Math.sin(yaw);
   const fz = -Math.cos(yaw);
   const horizontal = speed * Math.cos(launchRad);
@@ -42,6 +44,8 @@ export function launchBody(body, { yaw, speed, launchRad, curve }) {
   body.v.y = speed * Math.sin(launchRad);
   body.side.x = Math.cos(yaw) * curve;
   body.side.z = -Math.sin(yaw) * curve;
+  body.wind.x = wind ? wind.x * PHYSICS.windPush : 0;
+  body.wind.z = wind ? wind.z * PHYSICS.windPush : 0;
   body.state = launchRad > 0 ? 'air' : 'roll';
   body.bounces = 0;
 }
@@ -64,8 +68,8 @@ function substep(b, hole, dt) {
 
   if (b.state === 'air') {
     b.v.y -= g * dt;
-    b.v.x += b.side.x * dt;
-    b.v.z += b.side.z * dt;
+    b.v.x += (b.side.x + b.wind.x) * dt;
+    b.v.z += (b.side.z + b.wind.z) * dt;
     const drag = 1 - PHYSICS.airDrag * dt;
     b.v.x *= drag; b.v.y *= drag; b.v.z *= drag;
     b.p.x += b.v.x * dt; b.p.y += b.v.y * dt; b.p.z += b.v.z * dt;
@@ -132,6 +136,21 @@ function holeOut(b, hole) {
 }
 
 // ---------- shot planning ----------
+
+// Path of a straight shot from `from` until it first touches down, for the on-screen guide.
+// Uses the real course (hills, water) but no wind or hook/slice, so reading those stays a skill.
+export function predictFlight(hole, from, { yaw, speed, launchRad }) {
+  const b = createBallBody();
+  b.p.x = from.x; b.p.y = from.y; b.p.z = from.z;
+  launchBody(b, { yaw, speed, launchRad, curve: 0 });
+  const points = [{ x: b.p.x, y: b.p.y, z: b.p.z }];
+  for (let i = 0; i < 900; i++) {
+    const event = stepBody(b, hole, 1 / 30);
+    points.push({ x: b.p.x, y: b.p.y, z: b.p.z });
+    if (event || b.state !== 'air') break;
+  }
+  return points;
+}
 
 // Fly a ball over flat ground (same air model as above) and report where it first lands.
 function simulateCarry(speed, launchRad) {

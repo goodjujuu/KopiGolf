@@ -1,17 +1,22 @@
-import { METRES_TO_YARDS, THEMES, CLUBS, CLUB_ORDER } from './config.js';
+import { METRES_TO_YARDS, MS_TO_MPH, THEMES, CLUBS, CLUB_ORDER } from './config.js';
 import { holeLength, holeAimYaw } from './courses/catalog.js';
 import { hillFootprint } from './physics/terrain.js';
 
 // DOM overlay: hole badge, buttons, power meter, club chip, shot feedback, result card and the
 // overhead map. It reads the session and writes intents back to it; it never touches the 3D scene.
 
-export function createHUD(session, { onPlayAgain, onSelectClub, onRestart }) {
+export function createHUD(session, { onPlayAgain, onSelectClub, onRestart, onHome }) {
   const el = (id) => document.getElementById(id);
   const ui = {
     num: el('hole-num'),
     name: el('hole-name'),
     meta: el('hole-meta'),
     sr: el('hole-sr'),
+    hud: document.querySelector('.hud'),
+    homeBtn: el('btn-home'),
+    windChip: el('wind-chip'),
+    windArrow: el('wind-arrow'),
+    windText: el('wind-text'),
     mapBtn: el('btn-map'),
     restartBtn: el('btn-restart'),
     lookBtn: el('btn-look'),
@@ -50,6 +55,7 @@ export function createHUD(session, { onPlayAgain, onSelectClub, onRestart }) {
   ui.closeBtn.addEventListener('click', () => session.set({ mapOpen: false }));
   ui.sheet.addEventListener('click', (e) => { if (e.target === ui.sheet) session.set({ mapOpen: false }); });
   ui.againBtn.addEventListener('click', () => { tap(); onPlayAgain(); });
+  ui.homeBtn.addEventListener('click', () => { tap(); onHome(); });
 
   // ----- Restart: with shots on the card, the first tap asks "Restart?" and the second confirms -----
   let confirmTimer = 0;
@@ -108,14 +114,28 @@ export function createHUD(session, { onPlayAgain, onSelectClub, onRestart }) {
     const yardsToPin = Math.round((s.toPin ?? 0) * METRES_TO_YARDS);
     if (s.hole) {
       const holeYards = Math.round(holeLength(s.hole) * METRES_TO_YARDS);
-      ui.num.textContent = s.hole.number;
+      ui.num.textContent = s.hole.practice ? 'P' : s.hole.number;
       ui.name.textContent = s.hole.name;
-      ui.meta.textContent = `Par ${s.hole.par} · ${holeYards} yd · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
-      ui.sr.textContent = `Hole ${s.hole.number}, ${s.hole.name}, par ${s.hole.par}, ${s.strokes} strokes so far.`;
+      ui.meta.textContent = `Par ${s.hole.par} · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
+      ui.sr.textContent = `${s.hole.practice ? 'Practice' : `Hole ${s.hole.number}`}, ${s.hole.name}, par ${s.hole.par}, ${holeYards} yards, ${s.strokes} strokes so far.`;
       ui.mapKicker.textContent = `Hole ${s.hole.number} · Par ${s.hole.par}`;
       ui.mapTitle.textContent = s.hole.name;
       ui.mapDist.textContent = `${yardsToPin} yd to the pin`;
     }
+    ui.hud.hidden = s.screen !== 'play';
+
+    // Wind chip: arrow shows where the wind blows relative to the way you're aiming.
+    const windOn = s.wind && s.wind.speed >= 0.5;
+    ui.windChip.hidden = !windOn;
+    if (windOn) {
+      const mph = Math.round(s.wind.speed * MS_TO_MPH);
+      const rel = s.wind.yaw - (s.aimYaw ?? 0);           // 0 = blowing straight down your line
+      const deg = (-rel * 180) / Math.PI;                  // yaw turns left; screen rotation turns right
+      ui.windArrow.style.transform = `rotate(${deg}deg)`;
+      ui.windText.textContent = `${mph} mph`;
+      ui.windChip.setAttribute('aria-label', `Wind ${mph} miles per hour, ${describeWind(rel)}`);
+    }
+
     const club = CLUBS[s.club] ?? CLUBS['7i'];
     ui.clubChipBadge.textContent = club.id;
     ui.clubChipText.textContent = `${club.name} · ${yardsToPin} yd to pin`;
@@ -186,6 +206,15 @@ export function createHUD(session, { onPlayAgain, onSelectClub, onRestart }) {
       toastTimer = setTimeout(() => ui.toast.classList.remove('is-on'), 1900);
     },
   };
+}
+
+// Plain-words wind direction for screen readers, from the angle between wind and aim.
+function describeWind(rel) {
+  const a = Math.atan2(Math.sin(rel), Math.cos(rel)); // wrap to −π..π
+  const deg = (a * 180) / Math.PI;
+  if (Math.abs(deg) <= 30) return 'helping, behind you';
+  if (Math.abs(deg) >= 150) return 'against you, in your face';
+  return deg > 0 ? 'blowing from right to left' : 'blowing from left to right';
 }
 
 // One card per club, in bag order, styled after the Golf Dreams club picker.

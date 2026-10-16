@@ -4,6 +4,11 @@
 export function createSession() {
   const listeners = new Set();
   const state = {
+    screen: 'home',     // 'home' | 'play'
+    mode: 'practice',   // 'practice' (later: 'match')
+    settings: { timeOfDay: 'day', wind: 'calm' },
+    wind: null,         // { speed, yaw, x, z } for the current hole
+    aimYaw: 0,          // where the player is aiming (radians), for the wind arrow
     holeIndex: 0,
     hole: null,
     strokes: 0,

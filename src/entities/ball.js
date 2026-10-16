@@ -16,6 +16,11 @@ export function createBall() {
 
   return {
     mesh,
+    // A faint self-glow keeps the ball easy to spot at night.
+    setGlow(amount) {
+      mesh.material.emissive.setHex(0xffffff);
+      mesh.material.emissiveIntensity = amount;
+    },
     setIdle(on) {
       idle = on;
       if (!on) mesh.scale.setScalar(1);

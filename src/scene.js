@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LAYOUT, DEG, REDUCED_MOTION } from './config.js';
+import { LAYOUT, LIGHTING, DEG, REDUCED_MOTION } from './config.js';
 import { buildWorld } from './world/builder.js';
 import { createBall, BALL_RADIUS } from './entities/ball.js';
 import { createClub } from './entities/club.js';
@@ -9,6 +9,7 @@ import { createClub } from './entities/club.js';
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 const AIM_DOTS = 16;
+const ARC_DOTS = 34;
 const FOLLOW_BACK = 6;
 const FOLLOW_UP = 2.6;
 const CLUB_HIDE_DELAY = 0.7;
@@ -34,18 +35,20 @@ export function createGameScene(canvas) {
   scene.add(hemi, sun, sun.target);
 
   const sky = makeSkyDome();
-  scene.add(sky.mesh);
+  const stars = makeStars();
+  scene.add(sky.mesh, stars);
 
   const ball = createBall();
   const club = createClub();
-  const aimLine = makeAimLine();
-  scene.add(ball.mesh, club.root, aimLine.mesh);
+  const aimLine = makeAimLine();        // ground dots, used for the putter
+  const trajectory = makeTrajectory(); // dotted flight arc + landing ring, for every other club
+  scene.add(ball.mesh, club.root, aimLine.mesh, trajectory.group);
 
   let world = null;
   let hole = null;
   let aimYaw = 0;
-  let aimLength = 18;
   let groundY = 0;
+  let lighting = LIGHTING.day;
   const lie = new THREE.Vector3();          // where the ball sits for the current shot
   const flightDir = new THREE.Vector3();
   const sunOffset = new THREE.Vector3();
@@ -63,14 +66,33 @@ export function createGameScene(canvas) {
     if (world) { scene.remove(world.group); world.dispose(); }
     world = buildWorld(hole);
     scene.add(world.group);
-    sky.setColors(world.theme.skyTop, world.theme.skyHorizon);
-    scene.background = new THREE.Color(world.theme.skyHorizon);
-    scene.fog = new THREE.Fog(world.theme.skyHorizon, 80, 340);
+    applyLighting();
     snapCamera = true;
   }
 
+  // Day, sunset or night: sky, fog, sun/moon, water sheen, stars.
+  function setTimeOfDay(name) {
+    lighting = LIGHTING[name] ?? LIGHTING.day;
+    applyLighting();
+  }
+
+  function applyLighting() {
+    const L = lighting;
+    sky.setColors(L.skyTop, L.skyHorizon);
+    scene.background = new THREE.Color(L.skyHorizon);
+    scene.fog = new THREE.Fog(L.skyHorizon, L.fogNear, L.fogFar);
+    hemi.color.setHex(L.hemiSky);
+    hemi.groundColor.setHex(L.hemiGround);
+    hemi.intensity = L.hemiIntensity;
+    sun.color.setHex(L.sunColor);
+    sun.intensity = L.sunIntensity;
+    stars.visible = L.stars;
+    ball.setGlow(L.ballGlow);
+    world?.setWaterGlow(L.waterGlow);
+  }
+
   // Set up for the next shot: ball at its lie, club addressing it, camera behind.
-  function placeAtLie(p, yaw, length) {
+  function placeAtLie(p, yaw) {
     lie.set(p.x, p.y, p.z);
     groundY = p.y - BALL_RADIUS;
     ball.mesh.position.copy(lie);
@@ -78,29 +100,30 @@ export function createGameScene(canvas) {
     ball.setIdle(true);
     club.root.visible = true;
     club.release();
-    aimLength = length;
     cameraMode = 'shot';
     lookAhead = false;
     setAim(yaw);
-    aimLine.mesh.visible = true;
   }
 
   function setAim(yaw) {
     aimYaw = yaw;
     club.address(lie, aimYaw, groundY);
-    aimLine.place(lie, aimYaw, aimLength, groundY);
     computePoses();
   }
 
-  function setAimLength(length) {
-    aimLength = length;
-    aimLine.place(lie, aimYaw, aimLength, groundY);
+  // Shot guide: { kind: 'arc', points } for a flighted shot, { kind: 'ground', length } for a putt,
+  // or null to hide it.
+  function setGuide(guide) {
+    aimLine.mesh.visible = guide?.kind === 'ground';
+    trajectory.group.visible = guide?.kind === 'arc';
+    if (guide?.kind === 'ground') aimLine.place(lie, aimYaw, guide.length, groundY);
+    if (guide?.kind === 'arc') trajectory.place(guide.points);
   }
 
   function beginFlight(yaw) {
     cameraMode = 'flight';
     flightDir.set(-Math.sin(yaw), 0, -Math.cos(yaw));
-    aimLine.mesh.visible = false;
+    setGuide(null);
     ball.setIdle(false);
     clubHideTimer = CLUB_HIDE_DELAY;
     lookAhead = false;
@@ -177,10 +200,11 @@ export function createGameScene(canvas) {
       camera.quaternion.slerp(target.quat, k);
     }
     sky.mesh.position.copy(camera.position);
+    stars.position.copy(camera.position);
 
     // Keep the tight shadow box on whatever the player is watching.
     const focus = cameraMode === 'flight' ? ball.mesh.position : lie;
-    sunOffset.set(5, 6, -7).applyAxisAngle(WORLD_UP, aimYaw);
+    sunOffset.fromArray(lighting.sunOffset).applyAxisAngle(WORLD_UP, aimYaw);
     sun.position.copy(focus).add(sunOffset);
     sun.target.position.copy(focus);
 
@@ -201,7 +225,8 @@ export function createGameScene(canvas) {
     loadHole,
     placeAtLie,
     setAim,
-    setAimLength,
+    setGuide,
+    setTimeOfDay,
     setClubKind(kind) { club.setKind(kind); },
     beginFlight,
     resize,
@@ -248,6 +273,62 @@ function makeAimLine() {
       mesh.instanceMatrix.needsUpdate = true;
     },
   };
+}
+
+// Dotted flight arc for the selected club at full power, plus a ring where it lands.
+function makeTrajectory() {
+  const group = new THREE.Group();
+  group.visible = false;
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, fog: false, depthWrite: false });
+  const dots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 8, 6), dotMat, ARC_DOTS);
+  dots.frustumCulled = false;
+  dots.renderOrder = 2;
+  const ringGeo = new THREE.RingGeometry(0.75, 1.05, 32);
+  ringGeo.rotateX(-Math.PI / 2);
+  const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, fog: false, depthWrite: false }));
+  ring.renderOrder = 2;
+  group.add(dots, ring);
+  const m = new THREE.Matrix4();
+  return {
+    group,
+    place(points) {
+      if (!points || points.length < 2) { group.visible = false; return; }
+      const first = points[0];
+      for (let i = 0; i < ARC_DOTS; i++) {
+        // Skip the first metre or so, so dots don't sit on top of the ball.
+        const t = 0.03 + (i / (ARC_DOTS - 1)) * 0.97;
+        const p = points[Math.min(points.length - 1, Math.round(t * (points.length - 1)))];
+        const d = Math.hypot(p.x - first.x, p.z - first.z);
+        const s = 1 + d * 0.035; // grow with distance so far dots stay visible
+        m.makeScale(s, s, s).setPosition(p.x, p.y, p.z);
+        dots.setMatrixAt(i, m);
+      }
+      dots.instanceMatrix.needsUpdate = true;
+      const last = points[points.length - 1];
+      const d = Math.hypot(last.x - first.x, last.z - first.z);
+      ring.position.set(last.x, last.y - 0.03, last.z);
+      ring.scale.setScalar(Math.max(1, d / 40));
+    },
+  };
+}
+
+// Small points scattered over the upper sky, shown at night.
+function makeStars() {
+  const count = 450;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const y = 0.12 + Math.random() * 0.88; // keep them above the horizon haze
+    const r = Math.sqrt(1 - y * y);
+    positions.set([Math.cos(theta) * r * 550, y * 550, Math.sin(theta) * r * 550], i * 3);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const stars = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.85, depthWrite: false }));
+  stars.renderOrder = -1;
+  stars.frustumCulled = false;
+  stars.visible = false;
+  return stars;
 }
 
 // A big inverted sphere with a vertical gradient. It follows the camera and ignores fog, so the

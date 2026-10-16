@@ -13,6 +13,7 @@
   --card: #f2f9f1;
   --card-ink: #163a2a;
   --card-muted: #557162;
+  --kopi: #f3c58a;
 
   --font-display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
   --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -74,6 +75,28 @@ body {
 
 .hud-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .hud-top-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+.hud-top-left { flex: 1; min-width: 0; display: grid; justify-items: start; gap: 8px; }
+.hud-top-left .badge { max-width: 100%; }
+
+/* Wind: arrow points where the wind blows, relative to your aim (up = helping) */
+.wind-chip {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px 5px 7px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px var(--ink-shade);
+  font-weight: 800;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px var(--ink-shade);
+}
+.wind-arrow { flex: none; transition: transform 0.25s ease; filter: drop-shadow(0 1px 1px var(--ink-shade)); }
 
 /* Restart: a second tap confirms once any shots have been played.
    The button stays round; the prompt appears as a small pill underneath it. */
@@ -139,9 +162,12 @@ body {
 .badge-meta {
   font-weight: 700;
   font-size: 11px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   opacity: 0.92;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-shadow: 0 1px 2px var(--ink-shade);
   font-variant-numeric: tabular-nums;
 }
@@ -450,6 +476,71 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { transform: translateY(40%); } }
 @keyframes pop { from { transform: scale(0.85); opacity: 0; } }
+
+/* ---------- Home ---------- */
+.home {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(6, 40, 46, 0.1) 0%, rgba(6, 40, 46, 0.35) 45%, rgba(6, 40, 46, 0.78) 100%);
+  padding-block: calc(env(safe-area-inset-top, 0px) + 28px) calc(env(safe-area-inset-bottom, 0px) + 18px);
+  padding-left: max(var(--edge), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--edge), env(safe-area-inset-right, 0px));
+}
+.home-inner {
+  min-height: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+}
+.home-head { display: grid; justify-items: center; text-align: center; gap: 4px; }
+.home-kicker { margin: 0; font-weight: 800; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; text-shadow: 0 1px 3px var(--ink-shade); }
+.home-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(52px, 17vw, 76px);
+  line-height: 0.95;
+  color: var(--ink);
+  text-shadow: 0 4px 0 rgba(8, 48, 38, 0.25), 0 8px 24px var(--ink-shade);
+}
+.home-title span { color: var(--kopi); }
+.home-cards { display: grid; gap: 12px; }
+.home-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--card-ink);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
+}
+.home-card-head { display: grid; gap: 2px; }
+.home-card h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 26px; line-height: 1.1; }
+.home-card p { margin: 0; font-weight: 700; font-size: 14px; color: var(--card-muted); }
+.home-card.is-soon { background: rgba(242, 249, 241, 0.82); box-shadow: none; padding-block: 14px; }
+.home-card.is-soon h2 { font-size: 20px; }
+
+/* Segmented choice (Time of day, Wind) */
+.seg-field { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 6px; }
+.seg-field legend { padding: 0; margin-bottom: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--card-muted); }
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 13px; background: rgba(22, 58, 42, 0.08); }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg label {
+  display: grid;
+  place-items: center;
+  min-height: var(--tap);
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--card-ink);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.seg input:checked + label { background: var(--card-ink); color: var(--card); }
+.seg input:focus-visible + label { outline: 3px solid var(--card-ink); outline-offset: 2px; }
 
 /* ---------- Loading ---------- */
 .loading {
