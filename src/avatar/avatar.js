@@ -7,7 +7,15 @@ import { HEAD_FINISHES } from './looks.js';
 //
 // Units are metres-ish (a medium golfer is about 1.25 tall). +z is the front of the face.
 
-const BUILDS = { slim: { torso: 0.115, limb: 0.9 }, regular: { torso: 0.135, limb: 1 }, broad: { torso: 0.16, limb: 1.15 } };
+// torso = body radius, limb = arm/leg thickness, depth = front-to-back fullness, belly = tummy size
+const BUILDS = {
+  slim: { torso: 0.115, limb: 0.9, depth: 0.78, belly: 0 },
+  regular: { torso: 0.135, limb: 1, depth: 0.78, belly: 0 },
+  broad: { torso: 0.16, limb: 1.15, depth: 0.8, belly: 0 },
+  chubby: { torso: 0.175, limb: 1.22, depth: 0.9, belly: 0.75 },
+  heavy: { torso: 0.2, limb: 1.4, depth: 0.98, belly: 1 },
+};
+const INK = '#2c3553'; // tattoo ink
 const HEIGHTS = { short: { leg: 0.22, torso: 0.13 }, medium: { leg: 0.28, torso: 0.16 }, tall: { leg: 0.34, torso: 0.19 } };
 const HEAD_R = 0.17;
 
@@ -74,12 +82,19 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   const torsoCentre = hipY + torsoLen / 2 + torsoR * 0.55;
   const topMat = mat(look.topColour);
   const accentMat = mat(look.topAccent);
+  const depth = build.depth ?? 0.78;
   const torso = mesh(capsule(torsoR, torsoLen), topMat, 0, torsoCentre, 0);
-  torso.scale.set(1, 1, 0.78);
+  torso.scale.set(1, 1, depth);
   group.add(torso);
+  // A rounder tummy for the chubby and heavy builds.
+  if (build.belly) {
+    const belly = mesh(sphere(torsoR * (0.78 + 0.12 * build.belly)), topMat, 0, torsoCentre - torsoLen * 0.28, torsoR * depth * 0.32 * build.belly);
+    belly.scale.set(1.05, 0.92, 0.85);
+    group.add(belly);
+  }
   // Hips / waistband in the bottoms colour.
   const hips = mesh(capsule(torsoR * 0.98, 0.04), mat(look.bottomsColour), 0, hipY + 0.02, 0);
-  hips.scale.set(1, 1, 0.78);
+  hips.scale.set(1, 1, depth);
   group.add(hips);
   if (look.bottoms === 'skirt') {
     const skirt = mesh(new THREE.CylinderGeometry(torsoR * 0.95, torsoR * 1.45, size.leg * 0.45, 20, 1, true), mat(look.bottomsColour), 0, hipY - size.leg * 0.16, 0);
@@ -92,7 +107,7 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   const neckY = shoulderY + 0.04;
 
   // Top details
-  const frontZ = torsoR * 0.78;
+  const frontZ = torsoR * depth;
   if (look.top === 'polo') {
     const collar = mesh(new THREE.TorusGeometry(0.06, 0.016, 8, 20), accentMat, 0, neckY - 0.02, 0);
     collar.rotation.x = PI / 2 - 0.25;
@@ -137,6 +152,9 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
     shoulder.add(mesh(capsule(limbR * 1.1, upperArm), sleeveMat, 0, -upperArm / 2, 0));
     const forearmMat = longSleeves || vestLong ? sleeveMat : skin;
     shoulder.add(mesh(capsule(limbR, foreArm), forearmMat, 0, -upperArm - foreArm / 2, 0));
+    if (look.tattoos && look.tattoos !== 'none' && !longSleeves && !vestLong) {
+      addArmTattoo(shoulder, limbR, -upperArm - foreArm / 2, foreArm, side);
+    }
     const gloved = look.gloves === 'both' || (look.gloves === 'left' && side === -1);
     const hand = mesh(sphere(limbR * 1.25, 14, 10), gloved ? gloveMat : skin, 0, -upperArm - foreArm - limbR * 0.6, 0);
     shoulder.add(hand);
@@ -144,7 +162,14 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   }
 
   // ---------- neck + head ----------
-  group.add(mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.06, 12), skin, 0, neckY, 0));
+  const neckR = 0.045 * (1 + (build.belly ?? 0) * 0.25);
+  group.add(mesh(new THREE.CylinderGeometry(neckR, neckR * 1.1, 0.06, 12), skin, 0, neckY, 0));
+  if (look.tattoos === 'inked') {
+    // A small piece on the side of the neck.
+    const piece = mesh(new THREE.CircleGeometry(0.022, 5), mat(INK, { shine: 5 }), neckR * 0.98, neckY, 0.01);
+    piece.rotation.y = PI / 2 - 0.2;
+    group.add(piece);
+  }
   const headY = neckY + HEAD_R * 0.95;
   const head = new THREE.Group();
   head.position.set(0, headY, 0);
@@ -172,6 +197,19 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   }
 
   return { group, headCentre: new THREE.Vector3(0, headY, 0), height: headY + HEAD_R * 1.3 };
+}
+
+// Tattoos on a bare forearm: two bands and a little diamond, in dark ink.
+function addArmTattoo(shoulder, r, centreY, len, side) {
+  const ink = mat(INK, { shine: 5 });
+  for (const t of [-0.28, 0.22]) {
+    const band = mesh(new THREE.TorusGeometry(r * 1.02, r * 0.12, 6, 18), ink, 0, centreY + t * len, 0);
+    band.rotation.x = PI / 2;
+    shoulder.add(band);
+  }
+  const diamond = mesh(new THREE.OctahedronGeometry(r * 0.45, 0), ink, side * r * 0.2, centreY, r * 0.92);
+  diamond.scale.set(0.8, 1.2, 0.25);
+  shoulder.add(diamond);
 }
 
 // ---------- face ----------
@@ -320,6 +358,24 @@ function addHair(head, look) {
         fin.rotation.x = t;
         head.add(fin);
       }
+      return;
+    }
+    case 'messy': {
+      // Bed head: a cap of hair with tufts sticking out every which way.
+      head.add(hairCap(r, 1.45, h, 0.3));
+      const tufts = hatOn ? 5 : 11;
+      for (let i = 0; i < tufts; i++) {
+        const a = i * 2.39996; // golden-angle spread
+        const lift = hatOn ? 0.35 : 0.75 + (i % 3) * 0.18;
+        const tuft = mesh(new THREE.ConeGeometry(0.03 + (i % 2) * 0.01, 0.09 + (i % 4) * 0.015, 6), h,
+          Math.cos(a) * HEAD_R * 0.62, HEAD_R * lift, Math.sin(a) * HEAD_R * 0.55 - 0.02);
+        tuft.rotation.set(Math.sin(a) * 0.9 + (i % 3 - 1) * 0.3, a, -Math.cos(a) * 0.9);
+        head.add(tuft);
+      }
+      // A fringe flopping over the forehead.
+      const fringe = mesh(capsule(0.028, 0.1), h, -0.03, HEAD_R * 0.62, HEAD_R * 0.72);
+      fringe.rotation.set(0.5, 0, PI / 2 + 0.5);
+      head.add(fringe);
       return;
     }
     case 'afro': {

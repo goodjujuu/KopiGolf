@@ -64,10 +64,12 @@ export const HEAD_FINISHES = {
 // type 'choice' = style tiles, type 'colour' = swatches. `zoom: 'head'` frames the face in the preview.
 export const LOCKER_SECTIONS = {
   golfer: [
+    { id: 'quick', label: 'Quick picks', controls: [{ type: 'presets' }] },
     { id: 'body', label: 'Body', controls: [
-      { type: 'choice', key: 'build', label: 'Build', options: [['slim', 'Slim'], ['regular', 'Regular'], ['broad', 'Broad']] },
+      { type: 'choice', key: 'build', label: 'Build', options: [['slim', 'Slim'], ['regular', 'Regular'], ['broad', 'Broad'], ['chubby', 'Chubby'], ['heavy', 'Heavy']] },
       { type: 'choice', key: 'height', label: 'Height', options: [['short', 'Short'], ['medium', 'Medium'], ['tall', 'Tall']] },
       { type: 'colour', key: 'skin', label: 'Skin tone', palette: SKIN_TONES },
+      { type: 'choice', key: 'tattoos', label: 'Tattoos', options: [['none', 'None'], ['arms', 'Forearms'], ['inked', 'Arms + neck']] },
     ] },
     { id: 'face', label: 'Face', zoom: 'head', controls: [
       { type: 'choice', key: 'eyes', label: 'Eyes', options: [['round', 'Round'], ['almond', 'Almond'], ['sleepy', 'Sleepy'], ['wide', 'Wide'], ['happy', 'Happy']] },
@@ -78,7 +80,7 @@ export const LOCKER_SECTIONS = {
       { type: 'choice', key: 'cheeks', label: 'Cheeks', options: [['none', 'Plain'], ['rosy', 'Rosy'], ['freckles', 'Freckles']] },
     ] },
     { id: 'hair', label: 'Hair', zoom: 'head', controls: [
-      { type: 'choice', key: 'hair', label: 'Style', options: [['bald', 'Bald'], ['buzz', 'Buzz'], ['short', 'Short'], ['sidepart', 'Side part'], ['spiky', 'Spiky'], ['mohawk', 'Mohawk'], ['afro', 'Afro'], ['bun', 'Bun'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['bob', 'Bob']] },
+      { type: 'choice', key: 'hair', label: 'Style', options: [['bald', 'Bald'], ['buzz', 'Buzz'], ['short', 'Short'], ['sidepart', 'Side part'], ['spiky', 'Spiky'], ['mohawk', 'Mohawk'], ['afro', 'Afro'], ['bun', 'Bun'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['bob', 'Bob'], ['messy', 'Messy']] },
       { type: 'colour', key: 'hairColour', label: 'Hair colour', palette: HAIR_COLOURS },
       { type: 'choice', key: 'facialHair', label: 'Facial hair', options: [['none', 'None'], ['stubble', 'Stubble'], ['moustache', 'Moustache'], ['goatee', 'Goatee'], ['beard', 'Full beard']] },
     ] },
@@ -120,7 +122,7 @@ export const LOCKER_SECTIONS = {
 };
 
 export const DEFAULT_LOOK = {
-  build: 'regular', height: 'medium', skin: '#e0a476',
+  build: 'regular', height: 'medium', skin: '#e0a476', tattoos: 'none',
   eyes: 'round', eyeColour: '#3b2618', brows: 'straight', nose: 'button', mouth: 'smile', cheeks: 'none',
   hair: 'short', hairColour: '#1c1712', facialHair: 'none',
   hat: 'cap', hatColour: '#ffffff',
@@ -132,12 +134,82 @@ export const DEFAULT_LOOK = {
   headFinish: 'chrome', shaftColour: '#c9ced4', gripColour: '#2b2f33', ballColour: '#f8f8f6',
 };
 
+// Quick-pick golfers (the crew). Picking one sets the golfer's look; clubs and ball stay as they are.
+export const GOLFER_PRESETS = [
+  {
+    id: 'garet', name: 'Garet', blurb: 'Tall, sharp and handsome',
+    look: {
+      build: 'regular', height: 'tall', skin: '#efc095', tattoos: 'none',
+      eyes: 'almond', eyeColour: '#3b2618', brows: 'straight', nose: 'button', mouth: 'smirk', cheeks: 'none',
+      hair: 'sidepart', hairColour: '#3b2618', facialHair: 'stubble',
+      hat: 'none', hatColour: '#ffffff', glasses: 'none', glassesColour: '#22262c',
+      top: 'polo', topColour: '#1e2430', topAccent: '#ffffff',
+      bottoms: 'trousers', bottomsColour: '#c9a27a', socksColour: '#ffffff',
+      shoesColour: '#ffffff', soleColour: '#22262c', gloves: 'left', glovesColour: '#ffffff',
+    },
+  },
+  {
+    id: 'pramoth', name: 'Pramoth', blurb: 'Short, big and built for power',
+    look: {
+      build: 'heavy', height: 'short', skin: '#5c3220', tattoos: 'none',
+      eyes: 'round', eyeColour: '#1c1712', brows: 'thick', nose: 'round', mouth: 'grin', cheeks: 'none',
+      hair: 'short', hairColour: '#1c1712', facialHair: 'moustache',
+      hat: 'cap', hatColour: '#e04848', glasses: 'none', glassesColour: '#22262c',
+      top: 'polo', topColour: '#f08a3c', topAccent: '#ffffff',
+      bottoms: 'shorts', bottomsColour: '#1e2430', socksColour: '#ffffff',
+      shoesColour: '#ffffff', soleColour: '#22262c', gloves: 'left', glovesColour: '#ffffff',
+    },
+  },
+  {
+    id: 'drt', name: 'DRT', blurb: 'Skinny, inked, bed-head hair',
+    look: {
+      build: 'slim', height: 'medium', skin: '#d0915f', tattoos: 'inked',
+      eyes: 'sleepy', eyeColour: '#3b2618', brows: 'determined', nose: 'long', mouth: 'flat', cheeks: 'none',
+      hair: 'messy', hairColour: '#1c1712', facialHair: 'stubble',
+      hat: 'none', hatColour: '#22262c', glasses: 'none', glassesColour: '#22262c',
+      top: 'tee', topColour: '#22262c', topAccent: '#8a929c',
+      bottoms: 'shorts', bottomsColour: '#8a929c', socksColour: '#22262c',
+      shoesColour: '#22262c', soleColour: '#ffffff', gloves: 'none', glovesColour: '#22262c',
+    },
+  },
+  {
+    id: 'steven', name: 'Steven', blurb: 'Podgy, golden and always smiling',
+    look: {
+      build: 'chubby', height: 'medium', skin: '#e0a476', tattoos: 'none',
+      eyes: 'happy', eyeColour: '#1c1712', brows: 'arched', nose: 'button', mouth: 'smile', cheeks: 'rosy',
+      hair: 'short', hairColour: '#1c1712', facialHair: 'none',
+      hat: 'bucket', hatColour: '#2f9e6a', glasses: 'round', glassesColour: '#22262c',
+      top: 'tee', topColour: '#3fa7e0', topAccent: '#ffffff',
+      bottoms: 'trousers', bottomsColour: '#1e2430', socksColour: '#ffffff',
+      shoesColour: '#ffffff', soleColour: '#3fa7e0', gloves: 'left', glovesColour: '#ffffff',
+    },
+  },
+  {
+    id: 'henny', name: 'Henny', blurb: 'Tall and big: the gentle giant',
+    look: {
+      build: 'heavy', height: 'tall', skin: '#f7d0ae', tattoos: 'none',
+      eyes: 'wide', eyeColour: '#6b8e23', brows: 'thick', nose: 'wide', mouth: 'grin', cheeks: 'none',
+      hair: 'buzz', hairColour: '#3b2618', facialHair: 'beard',
+      hat: 'backwards', hatColour: '#22262c', glasses: 'none', glassesColour: '#22262c',
+      top: 'polo', topColour: '#7a4fd1', topAccent: '#f2c84b',
+      bottoms: 'trousers', bottomsColour: '#22262c', socksColour: '#22262c',
+      shoesColour: '#22262c', soleColour: '#ffffff', gloves: 'both', glovesColour: '#22262c',
+    },
+  },
+];
+
+// Which preset (if any) the look currently matches.
+export function matchingPreset(look) {
+  return GOLFER_PRESETS.find((p) => Object.entries(p.look).every(([k, v]) => look[k] === v))?.id ?? null;
+}
+
 // Every key a look can have, with its allowed values.
 function allowedValues() {
   const allowed = {};
   for (const sections of Object.values(LOCKER_SECTIONS)) {
     for (const section of sections) {
       for (const control of section.controls) {
+        if (!control.key) continue; // quick picks have no key of their own
         allowed[control.key] = control.type === 'choice'
           ? control.options.map(([id]) => id)
           : control.palette.map((p) => p.hex);
@@ -169,6 +241,7 @@ export function randomLook(random = Math.random) {
   if (random() < 0.5) look.hat = 'none';
   if (random() < 0.6) look.glasses = 'none';
   if (random() < 0.6) look.facialHair = 'none';
+  if (random() < 0.7) look.tattoos = 'none';
   return look;
 }
 

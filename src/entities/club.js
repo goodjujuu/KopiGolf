@@ -101,6 +101,8 @@ export function createClub() {
   const upperArmGeo = new THREE.CapsuleGeometry(0.038, 0.62, 4, 10);
   const shirtMat = new THREE.MeshLambertMaterial({ color: 0x3a63d8 });
   const forearms = [];
+  const tattoos = [];
+  const inkMat = new THREE.MeshLambertMaterial({ color: 0x2c3553 });
   for (const side of [-1, 1]) {
     const arm = new THREE.Group();
     arm.position.set(side * 0.012, 0.005, 0.01);
@@ -108,6 +110,16 @@ export function createClub() {
     arm.rotation.set(0.35, 0, side < 0 ? 0.4 : -0.1);
     const fore = new THREE.Mesh(forearmGeo, skinMat);
     fore.position.y = 0.17;
+    // Tattoo bands (shown on bare forearms when the look has tattoos).
+    const ink = [];
+    for (const t of [-0.07, 0.06]) {
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.0305, 0.004, 6, 18), inkMat);
+      band.rotation.x = Math.PI / 2;
+      band.position.y = t;
+      fore.add(band);
+      ink.push(band);
+    }
+    tattoos.push(...ink);
     const upper = new THREE.Mesh(upperArmGeo, shirtMat);
     upper.position.y = 0.66;
     arm.add(fore, upper);
@@ -151,6 +163,7 @@ export function createClub() {
       sleeveMat.color.set(look.top === 'vest' ? look.topAccent : look.topColour);
       shirtMat.color.set(look.top === 'vest' ? look.topAccent : look.topColour);
       for (const arm of forearms) arm.material = longSleeves ? sleeveMat : skinMat;
+      for (const t of tattoos) t.visible = !longSleeves && look.tattoos && look.tattoos !== 'none';
     },
 
     // Show the head for a club id ('D', '7i', 'Sw'…). Re-address after this so the sweet spot

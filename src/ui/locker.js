@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LOCKER_SECTIONS, HEAD_FINISHES, loadLook, saveLook, sanitizeLook, randomLook } from '../avatar/looks.js';
+import { LOCKER_SECTIONS, HEAD_FINISHES, GOLFER_PRESETS, loadLook, saveLook, sanitizeLook, randomLook, matchingPreset } from '../avatar/looks.js';
 import { buildAvatar } from '../avatar/avatar.js';
 
 // The Locker: customise your golfer and clubs, with a live 3D preview you can spin.
@@ -45,6 +45,12 @@ export function createLocker(session, { onChange }) {
   });
 
   controlsEl.addEventListener('click', (e) => {
+    const preset = e.target.closest('[data-preset]');
+    if (preset) {
+      const p = GOLFER_PRESETS.find((x) => x.id === preset.dataset.preset);
+      if (p) setLook({ ...look, ...p.look }); // golfer only: clubs and ball stay yours
+      return;
+    }
     const btn = e.target.closest('[data-key]');
     if (!btn) return;
     setLook({ ...look, [btn.dataset.key]: btn.dataset.value });
@@ -65,6 +71,15 @@ export function createLocker(session, { onChange }) {
 
   function renderControls() {
     controlsEl.innerHTML = section().controls.map((control) => {
+      if (control.type === 'presets') {
+        const active = matchingPreset(look);
+        const cards = GOLFER_PRESETS.map((p) => `
+          <button type="button" class="preset-card" data-preset="${p.id}" aria-pressed="${p.id === active}">
+            <span class="preset-face" aria-hidden="true" style="--skin:${p.look.skin};--hair:${p.look.hairColour};--top:${p.look.topColour}"><i></i></span>
+            <span class="preset-text"><b>${p.name}</b><small>${p.blurb}</small></span>
+          </button>`).join('');
+        return `<div class="locker-control"><p class="locker-label">The crew · tap to wear</p><div class="presets">${cards}</div></div>`;
+      }
       const current = look[control.key];
       if (control.type === 'colour') {
         const swatches = control.palette.map((p) =>
