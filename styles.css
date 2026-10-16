@@ -1,0 +1,210 @@
+/* Layout: a portrait play-field, full-bleed on phones and pillarboxed on wide screens.
+   The HUD floats on frosted-glass chips inside the safe area; the centre stays clear for the swing. */
+:root {
+  --sea-deep: #0b4f5c;
+  --sea: #18899a;
+  --sky: #c9f0fb;
+  --glass: rgba(255, 255, 255, 0.24);
+  --glass-on: rgba(255, 255, 255, 0.86);
+  --glass-edge: rgba(255, 255, 255, 0.55);
+  --ink: #ffffff;
+  --ink-shade: rgba(8, 48, 38, 0.38);
+  --flag: #f2483f;
+  --card: #f2f9f1;
+  --card-ink: #163a2a;
+  --card-muted: #557162;
+
+  --font-display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --tap: 44px;      /* Apple HIG minimum hit target */
+  --btn: 48px;      /* visible button size */
+  --edge: 16px;     /* inset from the safe-area edge */
+
+  color-scheme: light;
+}
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: radial-gradient(120% 80% at 50% 0%, var(--sea) 0%, var(--sea-deep) 100%);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+/* ---------- Stage ---------- */
+#stage {
+  position: fixed;
+  inset: 0;
+  margin-inline: auto;
+  width: min(100vw, 75vh);
+  width: min(100vw, 75dvh);   /* never wider than 3:4, so every screen frames the hole the same way */
+  overflow: hidden;
+  background: var(--sky);
+  touch-action: none;          /* the stage owns all gestures (swing comes next step) */
+}
+@media (min-aspect-ratio: 3/4) {
+  #stage { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 30px 80px rgba(0, 0, 0, 0.35); }
+}
+
+#scene { display: block; width: 100%; height: 100%; }
+
+/* ---------- HUD ---------- */
+.hud {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding-block: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-bottom, 0px) + 10px);
+  padding-left: max(var(--edge), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--edge), env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+.hud button { pointer-events: auto; }
+
+.hud-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.hud-mid { display: flex; justify-content: flex-end; align-items: center; transform: translateY(-6%); }
+.hud-bottom { display: flex; justify-content: center; }
+
+/* Hole badge */
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px var(--ink-shade);
+}
+.badge-num {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--card-ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+}
+.badge-text { display: grid; min-width: 0; }
+.badge-name {
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1.15;
+  text-shadow: 0 1px 2px var(--ink-shade);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-meta {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.92;
+  text-shadow: 0 1px 2px var(--ink-shade);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Round glass buttons — visible 48pt, never under 44pt */
+.hud-btn {
+  display: grid;
+  place-items: center;
+  width: var(--btn);
+  height: var(--btn);
+  min-width: var(--tap);
+  min-height: var(--tap);
+  flex: none;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--glass-edge);
+  background: var(--glass);
+  color: var(--ink);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px var(--ink-shade);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease;
+}
+.hud-btn svg { filter: drop-shadow(0 1px 1px var(--ink-shade)); }
+.hud-btn:active { transform: scale(0.9); }
+.hud-btn[aria-pressed="true"] { background: var(--glass-on); color: var(--card-ink); }
+.hud-btn[aria-pressed="true"] svg { filter: none; }
+button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+.swing-hint { color: var(--ink); opacity: 0.9; filter: drop-shadow(0 1px 2px var(--ink-shade)); animation: bob 1.8s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+
+/* ---------- Map sheet ---------- */
+.map-sheet {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(6, 40, 46, 0.45);
+  animation: fade 0.2s ease;
+}
+.map-panel {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  padding-block: 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  padding-left: max(var(--edge), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--edge), env(safe-area-inset-right, 0px));
+  border-radius: 22px 22px 0 0;
+  background: var(--card);
+  color: var(--card-ink);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+  animation: rise 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+.map-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.map-kicker { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--card-muted); }
+.map-title { margin: 2px 0 0; font-family: var(--font-display); font-weight: 400; font-size: 26px; line-height: 1.1; text-wrap: balance; }
+.close-btn {
+  display: grid; place-items: center;
+  width: var(--tap); height: var(--tap); flex: none; padding: 0;
+  border: 0; border-radius: 50%;
+  background: rgba(22, 58, 42, 0.08); color: var(--card-ink);
+  cursor: pointer;
+}
+.close-btn:focus-visible { outline-color: var(--card-ink); }
+#map-canvas { width: 100%; aspect-ratio: 4 / 5; max-height: 56dvh; border-radius: 14px; display: block; }
+.map-legend { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-size: 13px; font-weight: 700; color: var(--card-muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-tee { background: #ffffff; box-shadow: 0 0 0 2px var(--card-ink); }
+.dot-pin { background: var(--flag); margin-left: 6px; }
+.map-dist { margin-left: auto; color: var(--card-ink); font-variant-numeric: tabular-nums; }
+
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { transform: translateY(40%); } }
+
+/* ---------- Loading ---------- */
+.loading {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background: linear-gradient(#5fc4f2, var(--sky));
+  transition: opacity 0.5s ease;
+}
+.loading.is-done { opacity: 0; pointer-events: none; }
+.loading-text { margin: 0; padding-inline: 24px; text-align: center; font-family: var(--font-display); font-size: 28px; color: var(--ink); text-shadow: 0 2px 6px var(--ink-shade); }
+.loading.is-error .loading-text { font-family: var(--font-body); font-weight: 700; font-size: 16px; max-width: 30ch; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .swing-hint, .map-sheet, .map-panel { animation: none; }
+}
