@@ -49,6 +49,9 @@ export function launchBody(body, { yaw, speed, launchRad, curve, wind = null }) 
   body.side.z = -Math.sin(yaw) * curve;
   body.wind.x = wind ? wind.x * PHYSICS.windPush : 0;
   body.wind.z = wind ? wind.z * PHYSICS.windPush : 0;
+  body.gust = wind?.gust ?? 0;
+  body.gustPhase = Math.random() * Math.PI * 2;
+  body.airTime = 0;
   body.state = launchRad > 0 ? 'air' : 'roll';
   body.bounces = 0;
 }
@@ -71,8 +74,15 @@ function substep(b, hole, dt) {
 
   if (b.state === 'air') {
     b.v.y -= g * dt;
-    b.v.x += (b.side.x + b.wind.x) * dt;
-    b.v.z += (b.side.z + b.wind.z) * dt;
+    // Gusts: the push swells and eases (two overlapping waves) on stormy and hurricane days.
+    let gust = 1;
+    if (b.gust) {
+      b.airTime += dt;
+      const t = b.airTime;
+      gust = 1 + b.gust * (0.65 * Math.sin(t * 2.1 + b.gustPhase) + 0.35 * Math.sin(t * 5.3 + b.gustPhase * 1.7));
+    }
+    b.v.x += (b.side.x + b.wind.x * gust) * dt;
+    b.v.z += (b.side.z + b.wind.z * gust) * dt;
     const drag = 1 - PHYSICS.airDrag * dt;
     b.v.x *= drag; b.v.y *= drag; b.v.z *= drag;
     b.p.x += b.v.x * dt; b.p.y += b.v.y * dt; b.p.z += b.v.z * dt;

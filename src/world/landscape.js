@@ -44,12 +44,14 @@ export function buildCourse(hole) {
 
   // ---------- overlays ----------
   group.add(buildFairway(hole, biome, pitch));
+  // Tee box: its top sits exactly at fairway height, where the ball and club rest. (It used to
+  // stand 6 cm proud, which swallowed the club head on the opening shot.)
   const tee = new THREE.Mesh(new THREE.BoxGeometry(10, 0.1, 7), lambert(biome.tee));
-  tee.position.set(hole.tee[0], 0.04, hole.tee[2] + 1.5);
+  tee.position.set(hole.tee[0], SURFACE.fairway - 0.05, hole.tee[2] + 1.5);
   group.add(tee);
   for (const side of [-1, 1]) {
     const marker = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), lambert(0xf2483f));
-    marker.position.set(side * 3, 0.15, -0.6);
+    marker.position.set(side * 3, SURFACE.fairway + 0.15, -0.6);
     group.add(marker);
   }
   group.add(buildGreen(hole, biome));

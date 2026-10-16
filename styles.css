@@ -527,6 +527,10 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .seg-field { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 6px; }
 .seg-field legend { padding: 0; margin-bottom: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--card-muted); }
 .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 13px; background: rgba(22, 58, 42, 0.08); }
+/* Five wind levels: three on the top row, the two wildest underneath */
+.seg-wind { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.seg-wind label { grid-column: span 2; }
+.seg-wind label:nth-of-type(n + 4) { grid-column: span 3; }
 .seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .seg label {
   display: grid;

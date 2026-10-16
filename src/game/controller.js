@@ -77,10 +77,10 @@ export function aimTarget(hole, x, z) {
 
 // A fresh wind for a hole. yaw is the direction it blows TOWARD (0 = toward −z, like aim yaw).
 export function drawWind(level, random = Math.random) {
-  const { min, max } = WIND_LEVELS[level] ?? WIND_LEVELS.calm;
+  const { min, max, gust = 0 } = WIND_LEVELS[level] ?? WIND_LEVELS.calm;
   const speed = min + (max - min) * random();
   const yaw = random() * Math.PI * 2;
-  return { speed, yaw, x: -Math.sin(yaw) * speed, z: -Math.cos(yaw) * speed };
+  return { speed, yaw, gust, x: -Math.sin(yaw) * speed, z: -Math.cos(yaw) * speed };
 }
 
 export function createGameController({ game, session, hud }) {
@@ -100,7 +100,7 @@ export function createGameController({ game, session, hud }) {
     session.set({ phase: p });
   }
 
-  // settings: { timeOfDay: 'day' | 'sunset' | 'night', wind: 'calm' | 'breezy' | 'windy' }
+  // settings: { timeOfDay: 'day' | 'sunset' | 'night', wind: 'calm' | 'breezy' | 'windy' | 'stormy' | 'hurricane' }
   function startHole(next, settings = session.state.settings) {
     hole = next;
     timer = 0; // drop any pending settle / penalty from a shot still in the air

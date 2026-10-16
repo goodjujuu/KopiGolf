@@ -49,6 +49,10 @@ export const WIND_LEVELS = {
   calm: { label: 'Calm', min: 0, max: 0 },
   breezy: { label: 'Breezy', min: 2, max: 5 },
   windy: { label: 'Windy', min: 5, max: 9 },
+  // The two wildest levels also gust: the push surges and eases while the ball is in the air,
+  // so even a perfect read of the arrow won't always hold.
+  stormy: { label: 'Stormy', min: 10, max: 16, gust: 0.3 },
+  hurricane: { label: 'Hurricane', min: 18, max: 28, gust: 0.5 },
 };
 
 // Time-of-day lighting. Sky and light colours here override the course theme's sky.
