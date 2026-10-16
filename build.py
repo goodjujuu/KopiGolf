@@ -31,6 +31,7 @@ MODULES = [
     "src/physics/collide.js",
     "src/physics/ball.js",
     "src/avatar/looks.js",
+    "src/avatar/patterns.js",
     "src/avatar/avatar.js",
     "src/world/materials.js",
     "src/world/palm.js",

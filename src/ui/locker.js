@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { LOCKER_SECTIONS, HEAD_FINISHES, GOLFER_PRESETS, loadLook, saveLook, sanitizeLook, randomLook, matchingPreset } from '../avatar/looks.js';
 import { buildAvatar } from '../avatar/avatar.js';
+import { patternPreview } from '../avatar/patterns.js';
 
 // The Locker: customise your golfer and clubs, with a live 3D preview you can spin.
 // Changes save on this device straight away and are sent to the game through onChange(look).
@@ -88,7 +89,9 @@ export function createLocker(session, { onChange }) {
         return `<div class="locker-control"><p class="locker-label">${control.label}</p><div class="swatches">${swatches}</div></div>`;
       }
       const tiles = control.options.map(([id, label]) => {
-        const swatch = control.swatches ? `<span class="tile-swatch" style="--swatch:${HEAD_FINISHES[id].hex}"></span>` : '';
+        let swatch = control.swatches ? `<span class="tile-swatch" style="--swatch:${HEAD_FINISHES[id].hex}"></span>` : '';
+        // Pattern tiles show the pattern in your current colours.
+        if (control.preview) swatch = `<span class="tile-pattern" style="background-image:url(${patternPreview(id, look[control.preview[0]], look[control.preview[1]])})"></span>`;
         return `<button type="button" class="tile" data-key="${control.key}" data-value="${id}" aria-pressed="${id === current}">${swatch}${label}</button>`;
       }).join('');
       return `<div class="locker-control"><p class="locker-label">${control.label}</p><div class="tiles">${tiles}</div></div>`;

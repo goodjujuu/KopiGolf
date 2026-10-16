@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { HEAD_FINISHES } from './looks.js';
+import { patternTexture } from './patterns.js';
 
 // Builds a chunky, big-headed golfer from simple shapes, in the spirit of console avatars.
 // buildAvatar(look) returns { group, headCentre, height }. Rebuild it whenever the look changes;
@@ -37,6 +38,17 @@ function mesh(geo, material, x = 0, y = 0, z = 0) {
   m.castShadow = true;
   return m;
 }
+// Cloth in a pattern: the texture carries both colours, so the material itself is white.
+const fabricCache = new Map();
+function fabric(base, accent, pattern, repeat = [2, 2]) {
+  if (!pattern || pattern === 'solid') return mat(base);
+  const key = `${base}|${accent}|${pattern}|${repeat}`;
+  if (!fabricCache.has(key)) {
+    fabricCache.set(key, new THREE.MeshPhongMaterial({ color: 0xffffff, map: patternTexture(pattern, base, accent, repeat), shininess: 14, specular: 0x222222 }));
+  }
+  return fabricCache.get(key);
+}
+const LONG_SLEEVES = ['longsleeve', 'hoodie', 'jacket', 'shirt', 'sweater', 'rugby', 'windbreaker'];
 const capsule = (r, len) => new THREE.CapsuleGeometry(r, len, 6, 14);
 const sphere = (r, w = 22, h = 16) => new THREE.SphereGeometry(r, w, h);
 
@@ -52,27 +64,34 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   const shoeY = 0.035;
   const legBottom = 0.07;
   const legTop = legBottom + size.leg;
+  const bottomsMat = fabric(look.bottomsColour, look.bottomsAccent, look.bottomsPattern, [2, 2]);
+  const socksMat = fabric(look.socksColour, look.socksAccent, look.socksPattern, [3, 1]);
+  const bareShins = look.bottoms === 'shorts' || look.bottoms === 'skirt' || look.bottoms === 'kilt';
   for (const side of [-1, 1]) {
     const x = side * (build.torso * 0.5);
-    const shoe = mesh(capsule(0.048, 0.08), mat(look.shoesColour, { shine: 40 }), x, shoeY + 0.005, 0.03);
-    shoe.rotation.x = PI / 2;
-    shoe.scale.set(1.05, 1, 0.8);
-    group.add(shoe);
-    const sole = mesh(new THREE.BoxGeometry(0.1, 0.022, 0.19), mat(look.soleColour), x, 0.011, 0.03);
-    group.add(sole);
+    addShoe(group, look, x, shoeY, limbR);
 
     const legLen = legTop - legBottom;
     const lowerLen = legLen * 0.5;
     const upperLen = legLen - lowerLen;
-    const bottomsMat = mat(look.bottomsColour);
-    // Lower leg: trousers cover it; shorts, skirt and plus fours show socks or skin.
-    const lowerMat = look.bottoms === 'trousers' ? bottomsMat : mat(look.socksColour);
-    const lowerSkin = look.bottoms === 'shorts' || look.bottoms === 'skirt';
-    group.add(mesh(capsule(limbR, lowerLen), lowerSkin ? skin : lowerMat, x, legBottom + lowerLen / 2 + limbR * 0.3, 0));
-    if (lowerSkin) group.add(mesh(capsule(limbR * 1.04, lowerLen * 0.35), mat(look.socksColour), x, legBottom + 0.03, 0));
-    const upperR = look.bottoms === 'plusfours' ? limbR * 1.45 : limbR * 1.08;
-    const upperMat = look.bottoms === 'skirt' ? skin : bottomsMat;
+    // Lower leg: long trousers cover it; shorts, skirts and kilts show socks or skin; plus fours show socks.
+    const longLegs = ['trousers', 'joggers', 'cargo'].includes(look.bottoms);
+    group.add(mesh(capsule(limbR, lowerLen), longLegs ? bottomsMat : bareShins ? skin : socksMat, x, legBottom + lowerLen / 2 + limbR * 0.3, 0));
+    if (bareShins) {
+      const sockLen = { ankle: 0.12, crew: 0.4, knee: 0.85 }[look.socksStyle] ?? 0.4;
+      group.add(mesh(capsule(limbR * 1.04, lowerLen * sockLen), socksMat, x, legBottom + 0.005 + lowerLen * sockLen * 0.5, 0));
+    }
+    if (look.bottoms === 'joggers') { // elastic cuff at the ankle
+      const cuff = mesh(new THREE.TorusGeometry(limbR * 1.02, limbR * 0.28, 6, 16), mat(look.bottomsAccent), x, legBottom + 0.015, 0);
+      cuff.rotation.x = PI / 2;
+      group.add(cuff);
+    }
+    const upperR = look.bottoms === 'plusfours' ? limbR * 1.45 : look.bottoms === 'cargo' ? limbR * 1.15 : limbR * 1.08;
+    const upperMat = look.bottoms === 'skirt' || look.bottoms === 'kilt' ? skin : bottomsMat;
     group.add(mesh(capsule(upperR, upperLen), upperMat, x, legBottom + lowerLen + upperLen / 2 + limbR * 0.5, 0));
+    if (look.bottoms === 'cargo') { // side pockets on the thighs
+      group.add(mesh(new THREE.BoxGeometry(0.02, upperLen * 0.45, upperR * 1.2), mat(look.bottomsColour), x + side * upperR * 1.05, legBottom + lowerLen + upperLen * 0.4, 0));
+    }
   }
 
   // ---------- torso ----------
@@ -80,7 +99,7 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   const torsoR = build.torso;
   const torsoLen = size.torso;
   const torsoCentre = hipY + torsoLen / 2 + torsoR * 0.55;
-  const topMat = mat(look.topColour);
+  const topMat = fabric(look.topColour, look.topAccent, look.topPattern, [3, 2]);
   const accentMat = mat(look.topAccent);
   const depth = build.depth ?? 0.78;
   const torso = mesh(capsule(torsoR, torsoLen), topMat, 0, torsoCentre, 0);
@@ -93,12 +112,15 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
     group.add(belly);
   }
   // Hips / waistband in the bottoms colour.
-  const hips = mesh(capsule(torsoR * 0.98, 0.04), mat(look.bottomsColour), 0, hipY + 0.02, 0);
+  const hips = mesh(capsule(torsoR * 0.98, 0.04), bottomsMat, 0, hipY + 0.02, 0);
   hips.scale.set(1, 1, depth);
   group.add(hips);
-  if (look.bottoms === 'skirt') {
-    const skirt = mesh(new THREE.CylinderGeometry(torsoR * 0.95, torsoR * 1.45, size.leg * 0.45, 20, 1, true), mat(look.bottomsColour), 0, hipY - size.leg * 0.16, 0);
-    skirt.material.side = THREE.DoubleSide;
+  if (look.bottoms === 'skirt' || look.bottoms === 'kilt') {
+    const kilt = look.bottoms === 'kilt';
+    const len = size.leg * (kilt ? 0.58 : 0.45);
+    const skirtMat = fabric(look.bottomsColour, look.bottomsAccent, look.bottomsPattern, [3, 1]).clone();
+    skirtMat.side = THREE.DoubleSide;
+    const skirt = mesh(new THREE.CylinderGeometry(torsoR * 0.95, torsoR * (kilt ? 1.3 : 1.45), len, 20, 1, true), skirtMat, 0, hipY - len * 0.36, 0);
     skirt.scale.z = 0.85;
     group.add(skirt);
   }
@@ -127,6 +149,30 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
     hood.rotation.x = PI / 2 + 0.35;
     group.add(hood);
     group.add(mesh(new THREE.BoxGeometry(torsoR * 1.1, 0.07, 0.02), accentMat, 0, torsoCentre - torsoLen * 0.3, frontZ - 0.01));
+  } else if (look.top === 'shirt' || look.top === 'rugby') {
+    const collar = mesh(new THREE.TorusGeometry(0.06, 0.016, 8, 20), look.top === 'rugby' ? accentMat : topMat, 0, neckY - 0.02, 0);
+    collar.rotation.x = PI / 2 - 0.25;
+    group.add(collar);
+    const buttons = look.top === 'shirt' ? 4 : 2;
+    for (let i = 0; i < buttons; i++) group.add(mesh(sphere(0.009, 8, 6), accentMat, 0, shoulderY - 0.04 - i * (torsoLen * 0.28), frontZ + 0.004));
+  } else if (look.top === 'sweater') {
+    const ring = mesh(new THREE.TorusGeometry(0.06, 0.016, 6, 20), accentMat, 0, neckY - 0.03, 0);
+    ring.rotation.x = PI / 2;
+    group.add(ring);
+    const hem = mesh(new THREE.TorusGeometry(torsoR * 0.99, 0.018, 6, 26), accentMat, 0, hipY + 0.05, 0);
+    hem.rotation.x = PI / 2;
+    hem.scale.set(1, depth / 0.98, 1);
+    group.add(hem);
+  } else if (look.top === 'tank') {
+    const ring = mesh(new THREE.TorusGeometry(0.066, 0.009, 6, 20), accentMat, 0, neckY - 0.035, 0);
+    ring.rotation.x = PI / 2;
+    group.add(ring);
+  } else if (look.top === 'windbreaker') {
+    group.add(mesh(new THREE.BoxGeometry(0.014, torsoLen + torsoR, 0.012), accentMat, 0, torsoCentre, frontZ + 0.002));
+    const hood = mesh(new THREE.TorusGeometry(0.085, 0.035, 8, 20), accentMat, 0, neckY - 0.01, -0.035);
+    hood.rotation.x = PI / 2 + 0.35;
+    group.add(hood);
+    group.add(mesh(new THREE.BoxGeometry(torsoR * 1.9, 0.03, 0.012), accentMat, 0, torsoCentre + torsoLen * 0.15, frontZ - 0.004));
   } else if (look.top === 'jacket') {
     group.add(mesh(new THREE.BoxGeometry(0.012, torsoLen + torsoR, 0.012), accentMat, 0, torsoCentre, frontZ + 0.002));
     const collar = mesh(new THREE.TorusGeometry(0.065, 0.02, 8, 20), topMat, 0, neckY - 0.015, 0);
@@ -135,7 +181,8 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   }
 
   // ---------- arms ----------
-  const longSleeves = ['longsleeve', 'hoodie', 'jacket'].includes(look.top);
+  const longSleeves = LONG_SLEEVES.includes(look.top);
+  const tank = look.top === 'tank';
   const sleeveMat = look.top === 'vest' ? accentMat : topMat; // vest: shirt sleeves in the trim colour
   const vestLong = look.top === 'vest';
   const gloveMat = mat(look.glovesColour, { shine: 30 });
@@ -149,15 +196,22 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
     shoulder.rotation.z = side * 0.18;
     if (holdingClub && side === 1) shoulder.rotation.x = -0.35;
     group.add(shoulder);
-    shoulder.add(mesh(capsule(limbR * 1.1, upperArm), sleeveMat, 0, -upperArm / 2, 0));
+    shoulder.add(mesh(capsule(limbR * (tank ? 1 : 1.1), upperArm), tank ? skin : sleeveMat, 0, -upperArm / 2, 0));
     const forearmMat = longSleeves || vestLong ? sleeveMat : skin;
     shoulder.add(mesh(capsule(limbR, foreArm), forearmMat, 0, -upperArm - foreArm / 2, 0));
     if (look.tattoos && look.tattoos !== 'none' && !longSleeves && !vestLong) {
       addArmTattoo(shoulder, limbR, -upperArm - foreArm / 2, foreArm, side);
     }
     const gloved = look.gloves === 'both' || (look.gloves === 'left' && side === -1);
-    const hand = mesh(sphere(limbR * 1.25, 14, 10), gloved ? gloveMat : skin, 0, -upperArm - foreArm - limbR * 0.6, 0);
+    const handY = -upperArm - foreArm - limbR * 0.6;
+    const hand = mesh(sphere(limbR * 1.25, 14, 10), gloved ? gloveMat : skin, 0, handY, 0);
     shoulder.add(hand);
+    if (gloved) {
+      const cuff = mesh(new THREE.TorusGeometry(limbR * 1.05, limbR * 0.25, 6, 16), mat(look.glovesAccent), 0, handY + limbR * 0.95, 0);
+      cuff.rotation.x = PI / 2;
+      shoulder.add(cuff);
+    }
+    if (side === -1 && look.wrist && look.wrist !== 'none') addWristwear(shoulder, look, limbR, handY + limbR * 1.5, longSleeves || vestLong);
     if (side === 1) rightHandWorld = hand;
   }
 
@@ -182,6 +236,8 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
     ear.scale.set(0.55, 1, 0.8);
     head.add(ear);
   }
+  addNeckwear(group, look, neckR, neckY, shoulderY, frontZ, torsoLen);
+  addEarrings(head, look);
   addFace(head, look, skin);
   addHair(head, look);
   addFacialHair(head, look);
@@ -197,6 +253,109 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   }
 
   return { group, headCentre: new THREE.Vector3(0, headY, 0), height: headY + HEAD_R * 1.3 };
+}
+
+// ---------- shoes ----------
+function addShoe(group, look, x, shoeY, limbR) {
+  const upper = mat(look.shoesColour, { shine: 40 });
+  const accent = mat(look.shoesAccent, { shine: 30 });
+  const style = look.shoesStyle ?? 'classic';
+  const shoe = mesh(capsule(0.048, style === 'loafer' ? 0.085 : 0.08), upper, x, shoeY + 0.005, 0.03);
+  shoe.rotation.x = PI / 2;
+  shoe.scale.set(1.05, 1, style === 'loafer' ? 0.68 : 0.8);
+  group.add(shoe);
+  group.add(mesh(new THREE.BoxGeometry(0.1, 0.022, 0.19), mat(look.soleColour), x, 0.011, 0.03));
+  if (style === 'saddle') { // contrasting saddle across the middle
+    const saddle = mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.05, 14, 1, true, -PI / 2, PI), accent, x, shoeY + 0.012, 0.03);
+    saddle.rotation.z = PI / 2;
+    saddle.rotation.y = PI / 2;
+    saddle.material = accent;
+    group.add(saddle);
+  } else if (style === 'hightop' || style === 'boots') {
+    const tall = style === 'boots' ? 0.11 : 0.08;
+    group.add(mesh(new THREE.CylinderGeometry(limbR * 1.25, limbR * 1.35, tall, 14), upper, x, shoeY + tall / 2, 0));
+    if (style === 'hightop') {
+      const band = mesh(new THREE.TorusGeometry(limbR * 1.3, 0.008, 6, 16), accent, x, shoeY + tall * 0.85, 0);
+      band.rotation.x = PI / 2;
+      group.add(band);
+    }
+  } else if (style === 'loafer') { // strap across the top
+    group.add(mesh(new THREE.BoxGeometry(0.07, 0.012, 0.025), accent, x, shoeY + 0.04, 0.06));
+  } else { // classic: laces
+    for (let i = 0; i < 3; i++) group.add(mesh(new THREE.BoxGeometry(0.04, 0.006, 0.008), accent, x, shoeY + 0.045, 0.045 + i * 0.018));
+  }
+}
+
+// ---------- extras ----------
+function addNeckwear(group, look, neckR, neckY, shoulderY, frontZ, torsoLen) {
+  const m = mat(look.neckColour, { shine: ['chain', 'pendant'].includes(look.neck) ? 90 : 18 });
+  switch (look.neck) {
+    case 'chain':
+    case 'pendant': {
+      const chain = mesh(new THREE.TorusGeometry(neckR * 1.55, 0.005, 6, 24), m, 0, neckY - 0.045, 0.012);
+      chain.rotation.x = PI / 2 - 0.45;
+      group.add(chain);
+      if (look.neck === 'pendant') group.add(mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.006, 12), m, 0, neckY - 0.09, frontZ * 0.9).rotateX(PI / 2));
+      return;
+    }
+    case 'tie': {
+      group.add(mesh(new THREE.BoxGeometry(0.03, 0.026, 0.02), m, 0, shoulderY - 0.005, frontZ));
+      const blade = mesh(new THREE.ConeGeometry(0.03, torsoLen * 0.95, 4), m, 0, shoulderY - 0.02 - torsoLen * 0.47, frontZ + 0.004);
+      blade.rotation.z = PI;
+      blade.rotation.y = PI / 4;
+      blade.scale.z = 0.3;
+      group.add(blade);
+      return;
+    }
+    case 'bowtie': {
+      for (const s of [-1, 1]) {
+        const wing = mesh(new THREE.ConeGeometry(0.026, 0.05, 4), m, s * 0.026, shoulderY + 0.005, frontZ + 0.005);
+        wing.rotation.z = s * PI / 2;
+        wing.scale.z = 0.5;
+        group.add(wing);
+      }
+      group.add(mesh(sphere(0.012, 8, 6), m, 0, shoulderY + 0.005, frontZ + 0.01));
+      return;
+    }
+    case 'scarf': {
+      const wrap = mesh(new THREE.TorusGeometry(neckR * 1.3, 0.024, 8, 20), m, 0, neckY - 0.01, 0);
+      wrap.rotation.x = PI / 2;
+      group.add(wrap);
+      group.add(mesh(new THREE.BoxGeometry(0.045, torsoLen * 0.7, 0.014), m, 0.04, shoulderY - torsoLen * 0.3, frontZ + 0.006));
+      return;
+    }
+    default:
+  }
+}
+
+function addWristwear(shoulder, look, limbR, y, sleeved) {
+  const m = mat(look.wristColour, { shine: look.wrist === 'bracelet' ? 90 : 30 });
+  if (look.wrist === 'watch') {
+    const strap = mesh(new THREE.TorusGeometry(limbR * 1.08, limbR * 0.18, 6, 16), m, 0, y, 0);
+    strap.rotation.x = PI / 2;
+    shoulder.add(strap);
+    shoulder.add(mesh(new THREE.CylinderGeometry(limbR * 0.55, limbR * 0.55, limbR * 0.3, 14), mat('#e8eef2', { shine: 90 }), 0, y, limbR * 1.1).rotateX(PI / 2));
+  } else if (look.wrist === 'sweatband') {
+    shoulder.add(mesh(new THREE.CylinderGeometry(limbR * 1.22, limbR * 1.22, limbR * 1.1, 14), m, 0, y, 0));
+  } else if (look.wrist === 'bracelet' && !sleeved) {
+    const b = mesh(new THREE.TorusGeometry(limbR * 1.06, limbR * 0.12, 6, 16), m, 0, y, 0);
+    b.rotation.x = PI / 2 + 0.2;
+    shoulder.add(b);
+  }
+}
+
+function addEarrings(head, look) {
+  if (!look.ears || look.ears === 'none') return;
+  const m = mat(look.earColour, { shine: 95 });
+  for (const side of [-1, 1]) {
+    const x = side * HEAD_R * 1.0;
+    if (look.ears === 'studs') head.add(mesh(sphere(0.009, 8, 6), m, x, -0.04, 0.01));
+    else {
+      const hoop = mesh(new THREE.TorusGeometry(0.018, 0.0035, 6, 16), m, x, -0.058, 0.01);
+      hoop.rotation.y = PI / 2;
+      head.add(hoop);
+    }
+  }
 }
 
 // Tattoos on a bare forearm: two bands and a little diamond, in dark ink.
@@ -454,16 +613,79 @@ function brim(radius, material, y, z, back = false) {
 }
 
 function addHat(head, look) {
-  const m = mat(look.hatColour, { shine: 20 });
+  const m = fabric(look.hatColour, look.hatAccent, look.hatPattern, [3, 1]);
+  const band = mat(look.hatAccent, { shine: 20 });
   const r = HEAD_R;
+  const ring = (radius, tube, y, material = band) => {
+    const t = mesh(new THREE.TorusGeometry(radius, tube, 8, 28), material, 0, y, 0);
+    t.rotation.x = PI / 2;
+    return t;
+  };
   switch (look.hat) {
     case 'cap':
-    case 'backwards': {
+    case 'backwards':
+    case 'trucker': {
       const back = look.hat === 'backwards';
       const dome = mesh(new THREE.SphereGeometry(r * 1.08, 24, 12, 0, PI * 2, 0, PI / 2), m, 0, r * 0.12, 0);
       head.add(dome);
-      head.add(brim(r * 0.8, m, r * 0.16, back ? -r * 0.55 : r * 0.55, back));
-      head.add(mesh(sphere(0.018, 8, 6), m, 0, r * 1.2, 0));
+      if (look.hat === 'trucker') { // contrasting front panel
+        const panel = mesh(new THREE.SphereGeometry(r * 1.095, 16, 10, PI * 0.25, PI * 0.5, 0.15, PI / 2 - 0.15), band, 0, r * 0.12, 0);
+        panel.rotation.y = PI / 2 - PI * 0.5;
+        head.add(panel);
+      }
+      head.add(brim(r * 0.8, look.hat === 'trucker' ? band : m, r * 0.16, back ? -r * 0.55 : r * 0.55, back));
+      head.add(mesh(sphere(0.018, 8, 6), band, 0, r * 1.2, 0));
+      return;
+    }
+    case 'fedora': {
+      const crown = mesh(new THREE.CylinderGeometry(r * 0.78, r * 0.92, r * 0.62, 24), m, 0, r * 0.68, 0);
+      crown.scale.z = 0.92;
+      head.add(crown);
+      const dent = mesh(new THREE.BoxGeometry(r * 0.12, r * 0.08, r * 1.2), mat(look.hatColour), 0, r * 0.99, 0);
+      head.add(dent);
+      head.add(ring(r * 0.9, 0.018, r * 0.45));
+      head.add(mesh(new THREE.CylinderGeometry(r * 1.42, r * 1.42, 0.012, 30), m, 0, r * 0.38, 0));
+      return;
+    }
+    case 'cowboy': {
+      const crown = mesh(new THREE.CylinderGeometry(r * 0.72, r * 0.9, r * 0.75, 24), m, 0, r * 0.74, 0);
+      crown.scale.z = 0.85;
+      head.add(crown);
+      head.add(ring(r * 0.88, 0.016, r * 0.45));
+      const brimDisc = mesh(new THREE.CylinderGeometry(r * 1.55, r * 1.55, 0.012, 30), m, 0, r * 0.38, 0);
+      brimDisc.scale.set(1.15, 1, 0.9);
+      head.add(brimDisc);
+      for (const side of [-1, 1]) { // curled-up sides
+        const curl = mesh(new THREE.CylinderGeometry(r * 0.3, r * 0.3, r * 1.6, 12, 1, true, 0, PI), m, side * r * 1.55, r * 0.6, 0);
+        curl.rotation.x = PI / 2;
+        curl.rotation.z = side > 0 ? 0 : PI;
+        curl.material = m;
+        head.add(curl);
+      }
+      return;
+    }
+    case 'boater': {
+      head.add(mesh(new THREE.CylinderGeometry(r * 0.95, r * 0.98, r * 0.42, 26), m, 0, r * 0.58, 0));
+      head.add(ring(r * 0.98, 0.022, r * 0.47));
+      head.add(mesh(new THREE.CylinderGeometry(r * 1.45, r * 1.45, 0.012, 30), m, 0, r * 0.38, 0));
+      return;
+    }
+    case 'beret':
+    case 'tam': {
+      const beret = mesh(sphere(r * (look.hat === 'tam' ? 1.2 : 1.12), 22, 14), m, look.hat === 'beret' ? r * 0.12 : 0, r * 0.62, -0.01);
+      beret.scale.set(1, 0.38, 1);
+      beret.rotation.z = look.hat === 'beret' ? -0.25 : 0;
+      head.add(beret);
+      head.add(ring(r * 1.0, 0.016, r * 0.5, look.hat === 'tam' ? band : m));
+      if (look.hat === 'tam') head.add(mesh(sphere(0.045, 10, 8), band, 0, r * 0.98, 0));
+      else head.add(mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.03, 6), m, r * 0.12, r * 0.85, 0));
+      return;
+    }
+    case 'headband': {
+      const hb = mesh(new THREE.TorusGeometry(r * 1.02, 0.026, 8, 30), m, 0, r * 0.42, 0);
+      hb.rotation.x = PI / 2 - 0.12;
+      hb.scale.y = 1;
+      head.add(hb);
       return;
     }
     case 'visor': {
@@ -503,31 +725,79 @@ function addHat(head, look) {
 function addGlasses(head, look) {
   if (look.glasses === 'none') return;
   const frame = mat(look.glassesColour, { shine: 60 });
-  const tint = mat('#1a2230', { opacity: 0.82, shine: 90 });
+  const clear = look.lensColour === '#cfe8ff';
+  const shadesByDefault = ['sunglasses', 'aviators', 'sport', 'goggles', 'heart'].includes(look.glasses);
+  const lensMat = mat(look.lensColour ?? '#1a2230', { opacity: clear ? 0.25 : 0.82, shine: 95 });
+  const showLens = shadesByDefault || !clear;
   const z = HEAD_R * 0.97;
   const y = 0.015;
+  const style = look.glasses;
+
+  if (style === 'sport') { // one wraparound visor
+    const visor = mesh(new THREE.CylinderGeometry(HEAD_R * 1.04, HEAD_R * 1.04, 0.05, 24, 1, true, -PI * 0.34, PI * 0.68), lensMat, 0, y, 0);
+    head.add(visor);
+    const top = mesh(new THREE.TorusGeometry(HEAD_R * 1.045, 0.006, 6, 24, PI * 0.68), frame, 0, y + 0.026, 0);
+    top.rotation.set(PI / 2, 0, PI * 0.16);
+    head.add(top);
+    return;
+  }
+  if (style === 'goggles') {
+    const strap = mesh(new THREE.TorusGeometry(HEAD_R * 1.03, 0.012, 6, 28), frame, 0, y, 0);
+    strap.rotation.x = PI / 2;
+    head.add(strap);
+  }
+
   for (const side of [-1, 1]) {
     const x = side * 0.062;
-    let ring;
-    if (look.glasses === 'square') {
-      ring = mesh(new THREE.TorusGeometry(0.04, 0.006, 6, 4), frame, x, y, z);
-      ring.rotation.z = PI / 4;
-      ring.scale.set(1.15, 0.85, 1);
-    } else {
-      ring = mesh(new THREE.TorusGeometry(0.034, 0.005, 6, 20), frame, x, y, z);
-      if (look.glasses === 'aviators') ring.scale.set(1.1, 0.95, 1);
-      if (look.glasses === 'sunglasses') ring.scale.set(1.2, 0.8, 1);
-    }
-    head.add(ring);
-    if (look.glasses === 'sunglasses' || look.glasses === 'aviators') {
-      const lens = mesh(new THREE.CircleGeometry(0.034, 20), tint, x, y, z - 0.001);
-      lens.scale.copy(ring.scale);
+    let rim;
+    if (style === 'square') {
+      rim = mesh(new THREE.TorusGeometry(0.04, 0.006, 6, 4), frame, x, y, z);
+      rim.rotation.z = PI / 4;
+      rim.scale.set(1.15, 0.85, 1);
+    } else if (style === 'halfrim') {
+      rim = mesh(new THREE.TorusGeometry(0.036, 0.007, 6, 16, PI), frame, x, y, z);
+      rim.scale.set(1.15, 0.8, 1);
+    } else if (style === 'cateye') {
+      rim = mesh(new THREE.TorusGeometry(0.036, 0.006, 6, 20), frame, x, y, z);
+      rim.scale.set(1.2, 0.8, 1);
+      const flick = mesh(new THREE.ConeGeometry(0.012, 0.03, 4), frame, x + side * 0.038, y + 0.024, z);
+      flick.rotation.z = -side * 0.9;
+      head.add(flick);
+    } else if (style === 'goggles') {
+      rim = mesh(new THREE.TorusGeometry(0.036, 0.012, 8, 20), frame, x, y, z + 0.006);
+    } else if (style === 'heart') {
+      rim = heartMesh(0.04, frame, x, y, z);
+      head.add(rim);
+      const lens = heartMesh(0.033, lensMat, x, y, z + 0.002);
       head.add(lens);
+      rim = null;
+    } else {
+      rim = mesh(new THREE.TorusGeometry(0.034, 0.005, 6, 20), frame, x, y, z);
+      if (style === 'aviators') rim.scale.set(1.1, 0.95, 1);
+      if (style === 'sunglasses') rim.scale.set(1.2, 0.8, 1);
     }
-    const arm = mesh(new THREE.BoxGeometry(0.006, 0.006, HEAD_R * 0.9), frame, side * HEAD_R * 0.86, y + 0.01, z - HEAD_R * 0.5);
-    head.add(arm);
+    if (rim) {
+      head.add(rim);
+      if (showLens) {
+        const lens = mesh(new THREE.CircleGeometry(0.034, 20), lensMat, x, y, z - 0.001 + (style === 'goggles' ? 0.006 : 0));
+        lens.scale.copy(rim.scale);
+        head.add(lens);
+      }
+    }
+    if (style !== 'goggles') {
+      head.add(mesh(new THREE.BoxGeometry(0.006, 0.006, HEAD_R * 0.9), frame, side * HEAD_R * 0.86, y + 0.01, z - HEAD_R * 0.5));
+    }
   }
   head.add(mesh(new THREE.BoxGeometry(0.03, 0.006, 0.006), frame, 0, y + 0.012, z + 0.004));
+}
+
+// A flat heart (for the heart-shaped glasses).
+function heartMesh(size, material, x, y, z) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, -size);
+  shape.bezierCurveTo(size * 1.3, -size * 0.2, size * 0.9, size * 0.9, 0, size * 0.35);
+  shape.bezierCurveTo(-size * 0.9, size * 0.9, -size * 1.3, -size * 0.2, 0, -size);
+  return mesh(new THREE.ShapeGeometry(shape, 10), material, x, y, z);
 }
 
 // ---------- the club shown with the avatar in the Locker ----------

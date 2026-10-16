@@ -47,6 +47,19 @@ export const BALL_COLOURS = [
   c('#7cf05a', 'Green'), c('#5ab8ff', 'Blue'), c('#ff5050', 'Red'), c('#b28bff', 'Purple'),
 ];
 
+export const METALS = [
+  c('#d9a93a', 'Gold'), c('#c9ced4', 'Silver'), c('#e0a090', 'Rose gold'), c('#22262c', 'Black'),
+];
+export const LENS_TINTS = [
+  c('#1a2230', 'Smoke'), c('#cfe8ff', 'Clear'), c('#2f6fd8', 'Blue mirror'), c('#d9a93a', 'Gold'),
+  c('#e070b0', 'Rose'), c('#2f9e6a', 'Green'), c('#f08a3c', 'Orange'),
+];
+const PATTERN_OPTIONS = [
+  ['solid', 'Plain'], ['stripes', 'Stripes'], ['pinstripe', 'Pinstripe'], ['gingham', 'Gingham'],
+  ['tartan', 'Tartan'], ['argyle', 'Argyle'], ['dots', 'Polka dots'], ['camo', 'Camo'],
+  ['floral', 'Hawaiian'], ['chevron', 'Chevron'], ['twotone', 'Two-tone'], ['racing', 'Racing stripe'],
+];
+
 // Club head finishes: colour plus how shiny it is.
 export const HEAD_FINISHES = {
   chrome: { label: 'Chrome', hex: '#d5dbe2', shine: 90 },
@@ -85,30 +98,52 @@ export const LOCKER_SECTIONS = {
       { type: 'choice', key: 'facialHair', label: 'Facial hair', options: [['none', 'None'], ['stubble', 'Stubble'], ['moustache', 'Moustache'], ['goatee', 'Goatee'], ['beard', 'Full beard']] },
     ] },
     { id: 'hat', label: 'Hat', zoom: 'head', controls: [
-      { type: 'choice', key: 'hat', label: 'Style', options: [['none', 'None'], ['cap', 'Cap'], ['backwards', 'Backwards cap'], ['visor', 'Visor'], ['bucket', 'Bucket'], ['beanie', 'Beanie'], ['flatcap', 'Flat cap']] },
+      { type: 'choice', key: 'hat', label: 'Style', options: [['none', 'None'], ['cap', 'Cap'], ['backwards', 'Backwards cap'], ['trucker', 'Trucker'], ['visor', 'Visor'], ['bucket', 'Bucket'], ['beanie', 'Beanie'], ['flatcap', 'Flat cap'], ['fedora', 'Fedora'], ['cowboy', 'Cowboy'], ['boater', 'Straw boater'], ['beret', 'Beret'], ['tam', 'Tam'], ['headband', 'Headband']] },
+      { type: 'choice', key: 'hatPattern', label: 'Pattern', options: PATTERN_OPTIONS, preview: ['hatColour', 'hatAccent'] },
       { type: 'colour', key: 'hatColour', label: 'Hat colour', palette: CLOTHING },
+      { type: 'colour', key: 'hatAccent', label: 'Band / pattern colour', palette: CLOTHING },
     ] },
     { id: 'glasses', label: 'Glasses', zoom: 'head', controls: [
-      { type: 'choice', key: 'glasses', label: 'Style', options: [['none', 'None'], ['round', 'Round'], ['square', 'Square'], ['sunglasses', 'Shades'], ['aviators', 'Aviators']] },
+      { type: 'choice', key: 'glasses', label: 'Style', options: [['none', 'None'], ['round', 'Round'], ['square', 'Square'], ['halfrim', 'Half-rim'], ['cateye', 'Cat-eye'], ['sunglasses', 'Shades'], ['aviators', 'Aviators'], ['sport', 'Sport wrap'], ['goggles', 'Goggles'], ['heart', 'Hearts']] },
       { type: 'colour', key: 'glassesColour', label: 'Frame colour', palette: FRAME_COLOURS },
+      { type: 'colour', key: 'lensColour', label: 'Lens tint', palette: LENS_TINTS },
     ] },
     { id: 'top', label: 'Top', controls: [
-      { type: 'choice', key: 'top', label: 'Style', options: [['polo', 'Polo'], ['tee', 'T-shirt'], ['longsleeve', 'Long sleeve'], ['vest', 'Sweater vest'], ['hoodie', 'Hoodie'], ['jacket', 'Jacket']] },
+      { type: 'choice', key: 'top', label: 'Style', options: [['polo', 'Polo'], ['tee', 'T-shirt'], ['tank', 'Tank top'], ['shirt', 'Button shirt'], ['longsleeve', 'Long sleeve'], ['rugby', 'Rugby'], ['vest', 'Sweater vest'], ['sweater', 'Sweater'], ['hoodie', 'Hoodie'], ['jacket', 'Jacket'], ['windbreaker', 'Windbreaker']] },
+      { type: 'choice', key: 'topPattern', label: 'Pattern', options: PATTERN_OPTIONS, preview: ['topColour', 'topAccent'] },
       { type: 'colour', key: 'topColour', label: 'Main colour', palette: CLOTHING },
-      { type: 'colour', key: 'topAccent', label: 'Trim colour', palette: CLOTHING },
+      { type: 'colour', key: 'topAccent', label: 'Trim / pattern colour', palette: CLOTHING },
     ] },
     { id: 'bottoms', label: 'Bottoms', controls: [
-      { type: 'choice', key: 'bottoms', label: 'Style', options: [['trousers', 'Trousers'], ['shorts', 'Shorts'], ['skirt', 'Skirt'], ['plusfours', 'Plus fours']] },
+      { type: 'choice', key: 'bottoms', label: 'Style', options: [['trousers', 'Trousers'], ['joggers', 'Joggers'], ['cargo', 'Cargo'], ['shorts', 'Shorts'], ['skirt', 'Skirt'], ['kilt', 'Kilt'], ['plusfours', 'Plus fours']] },
+      { type: 'choice', key: 'bottomsPattern', label: 'Pattern', options: PATTERN_OPTIONS, preview: ['bottomsColour', 'bottomsAccent'] },
       { type: 'colour', key: 'bottomsColour', label: 'Colour', palette: CLOTHING },
-      { type: 'colour', key: 'socksColour', label: 'Socks', palette: CLOTHING },
+      { type: 'colour', key: 'bottomsAccent', label: 'Pattern colour', palette: CLOTHING },
+    ] },
+    { id: 'socks', label: 'Socks', controls: [
+      { type: 'choice', key: 'socksStyle', label: 'Length', options: [['ankle', 'Ankle'], ['crew', 'Crew'], ['knee', 'Knee-high']] },
+      { type: 'choice', key: 'socksPattern', label: 'Pattern', options: [['solid', 'Plain'], ['stripes', 'Stripes'], ['argyle', 'Argyle'], ['dots', 'Polka dots'], ['twotone', 'Two-tone']], preview: ['socksColour', 'socksAccent'] },
+      { type: 'colour', key: 'socksColour', label: 'Colour', palette: CLOTHING },
+      { type: 'colour', key: 'socksAccent', label: 'Pattern colour', palette: CLOTHING },
     ] },
     { id: 'shoes', label: 'Shoes', controls: [
+      { type: 'choice', key: 'shoesStyle', label: 'Style', options: [['classic', 'Classic'], ['saddle', 'Saddle'], ['hightop', 'High-tops'], ['loafer', 'Loafers'], ['boots', 'Boots']] },
       { type: 'colour', key: 'shoesColour', label: 'Upper', palette: CLOTHING },
+      { type: 'colour', key: 'shoesAccent', label: 'Saddle / laces', palette: CLOTHING },
       { type: 'colour', key: 'soleColour', label: 'Sole', palette: CLOTHING },
     ] },
     { id: 'gloves', label: 'Gloves', controls: [
       { type: 'choice', key: 'gloves', label: 'Style', options: [['none', 'None'], ['left', 'Left hand'], ['both', 'Both hands']] },
       { type: 'colour', key: 'glovesColour', label: 'Colour', palette: CLOTHING },
+      { type: 'colour', key: 'glovesAccent', label: 'Cuff colour', palette: CLOTHING },
+    ] },
+    { id: 'extras', label: 'Extras', controls: [
+      { type: 'choice', key: 'neck', label: 'Neck', options: [['none', 'None'], ['chain', 'Chain'], ['pendant', 'Pendant'], ['tie', 'Tie'], ['bowtie', 'Bow tie'], ['scarf', 'Scarf']] },
+      { type: 'colour', key: 'neckColour', label: 'Neck colour', palette: [...METALS, ...CLOTHING] },
+      { type: 'choice', key: 'wrist', label: 'Wrist', options: [['none', 'None'], ['watch', 'Watch'], ['sweatband', 'Sweatband'], ['bracelet', 'Bracelet']] },
+      { type: 'colour', key: 'wristColour', label: 'Wrist colour', palette: [...METALS, ...CLOTHING] },
+      { type: 'choice', key: 'ears', label: 'Earrings', options: [['none', 'None'], ['studs', 'Studs'], ['hoops', 'Hoops']] },
+      { type: 'colour', key: 'earColour', label: 'Earring colour', palette: METALS },
     ] },
   ],
   clubs: [
@@ -125,12 +160,14 @@ export const DEFAULT_LOOK = {
   build: 'regular', height: 'medium', skin: '#e0a476', tattoos: 'none',
   eyes: 'round', eyeColour: '#3b2618', brows: 'straight', nose: 'button', mouth: 'smile', cheeks: 'none',
   hair: 'short', hairColour: '#1c1712', facialHair: 'none',
-  hat: 'cap', hatColour: '#ffffff',
-  glasses: 'none', glassesColour: '#22262c',
-  top: 'polo', topColour: '#3a63d8', topAccent: '#ffffff',
-  bottoms: 'trousers', bottomsColour: '#c9a27a', socksColour: '#ffffff',
-  shoesColour: '#ffffff', soleColour: '#22262c',
-  gloves: 'left', glovesColour: '#ffffff',
+  hat: 'cap', hatColour: '#ffffff', hatPattern: 'solid', hatAccent: '#22262c',
+  glasses: 'none', glassesColour: '#22262c', lensColour: '#1a2230',
+  top: 'polo', topColour: '#3a63d8', topAccent: '#ffffff', topPattern: 'solid',
+  bottoms: 'trousers', bottomsColour: '#c9a27a', bottomsPattern: 'solid', bottomsAccent: '#ffffff',
+  socksStyle: 'crew', socksPattern: 'solid', socksColour: '#ffffff', socksAccent: '#22262c',
+  shoesStyle: 'classic', shoesColour: '#ffffff', shoesAccent: '#22262c', soleColour: '#22262c',
+  gloves: 'left', glovesColour: '#ffffff', glovesAccent: '#ffffff',
+  neck: 'none', neckColour: '#d9a93a', wrist: 'none', wristColour: '#22262c', ears: 'none', earColour: '#d9a93a',
   headFinish: 'chrome', shaftColour: '#c9ced4', gripColour: '#2b2f33', ballColour: '#f8f8f6',
 };
 
@@ -146,6 +183,7 @@ export const GOLFER_PRESETS = [
       top: 'polo', topColour: '#1e2430', topAccent: '#ffffff',
       bottoms: 'trousers', bottomsColour: '#c9a27a', socksColour: '#ffffff',
       shoesColour: '#ffffff', soleColour: '#22262c', gloves: 'left', glovesColour: '#ffffff',
+      wrist: 'watch', wristColour: '#c9ced4', shoesStyle: 'saddle', shoesAccent: '#7a5236',
     },
   },
   {
@@ -158,6 +196,7 @@ export const GOLFER_PRESETS = [
       top: 'polo', topColour: '#f08a3c', topAccent: '#ffffff',
       bottoms: 'shorts', bottomsColour: '#1e2430', socksColour: '#ffffff',
       shoesColour: '#ffffff', soleColour: '#22262c', gloves: 'left', glovesColour: '#ffffff',
+      neck: 'chain', neckColour: '#d9a93a',
     },
   },
   {
@@ -170,6 +209,7 @@ export const GOLFER_PRESETS = [
       top: 'tee', topColour: '#22262c', topAccent: '#8a929c',
       bottoms: 'shorts', bottomsColour: '#8a929c', socksColour: '#22262c',
       shoesColour: '#22262c', soleColour: '#ffffff', gloves: 'none', glovesColour: '#22262c',
+      ears: 'studs', earColour: '#c9ced4', wrist: 'sweatband', wristColour: '#22262c', shoesStyle: 'hightop', shoesAccent: '#ffffff',
     },
   },
   {
@@ -179,7 +219,7 @@ export const GOLFER_PRESETS = [
       eyes: 'happy', eyeColour: '#1c1712', brows: 'arched', nose: 'button', mouth: 'smile', cheeks: 'rosy',
       hair: 'short', hairColour: '#1c1712', facialHair: 'none',
       hat: 'bucket', hatColour: '#2f9e6a', glasses: 'round', glassesColour: '#22262c',
-      top: 'tee', topColour: '#3fa7e0', topAccent: '#ffffff',
+      top: 'tee', topColour: '#3fa7e0', topAccent: '#ffffff', topPattern: 'floral',
       bottoms: 'trousers', bottomsColour: '#1e2430', socksColour: '#ffffff',
       shoesColour: '#ffffff', soleColour: '#3fa7e0', gloves: 'left', glovesColour: '#ffffff',
     },
@@ -192,7 +232,7 @@ export const GOLFER_PRESETS = [
       hair: 'buzz', hairColour: '#3b2618', facialHair: 'beard',
       hat: 'backwards', hatColour: '#22262c', glasses: 'none', glassesColour: '#22262c',
       top: 'polo', topColour: '#7a4fd1', topAccent: '#f2c84b',
-      bottoms: 'trousers', bottomsColour: '#22262c', socksColour: '#22262c',
+      bottoms: 'trousers', bottomsColour: '#22262c', socksColour: '#22262c', bottomsPattern: 'tartan', bottomsAccent: '#7a4fd1',
       shoesColour: '#22262c', soleColour: '#ffffff', gloves: 'both', glovesColour: '#22262c',
     },
   },
@@ -242,6 +282,8 @@ export function randomLook(random = Math.random) {
   if (random() < 0.6) look.glasses = 'none';
   if (random() < 0.6) look.facialHair = 'none';
   if (random() < 0.7) look.tattoos = 'none';
+  for (const k of ['topPattern', 'bottomsPattern', 'hatPattern', 'socksPattern']) if (random() < 0.55) look[k] = 'solid';
+  for (const k of ['neck', 'wrist', 'ears']) if (random() < 0.6) look[k] = 'none';
   return look;
 }
 

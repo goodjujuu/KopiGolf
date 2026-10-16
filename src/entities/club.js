@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { REDUCED_MOTION } from '../config.js';
 import { BALL_RADIUS } from './ball.js';
 import { HEAD_FINISHES } from '../avatar/looks.js';
+import { patternTexture } from '../avatar/patterns.js';
 import { CLUB_ORDER, CLUBS } from '../config.js';
 import { buildHead, createHeadMaterials, SOLE_Y } from './clubHeads.js';
 
@@ -102,6 +103,9 @@ export function createClub() {
   const shirtMat = new THREE.MeshLambertMaterial({ color: 0x3a63d8 });
   const forearms = [];
   const tattoos = [];
+  const uppers = [];
+  const wristMat = new THREE.MeshPhongMaterial({ color: 0x22262c, shininess: 60 });
+  let wristwear = null;
   const inkMat = new THREE.MeshLambertMaterial({ color: 0x2c3553 });
   for (const side of [-1, 1]) {
     const arm = new THREE.Group();
@@ -123,6 +127,15 @@ export function createClub() {
     const upper = new THREE.Mesh(upperArmGeo, shirtMat);
     upper.position.y = 0.66;
     arm.add(fore, upper);
+    uppers.push(upper);
+    if (side < 0) { // lead (left) arm: room for a watch, sweatband or bracelet at the wrist
+      const wrist = new THREE.Mesh(new THREE.TorusGeometry(0.032, 0.007, 6, 18), wristMat);
+      wrist.rotation.x = Math.PI / 2;
+      wrist.position.y = -0.11;
+      wrist.visible = false;
+      fore.add(wrist);
+      wristwear = wrist;
+    }
     lean.add(arm);
     forearms.push(fore);
   }
@@ -159,10 +172,22 @@ export function createClub() {
       skinMat.color.set(look.skin);
       leadHandMat.color.set(look.gloves === 'none' ? look.skin : look.glovesColour);
       trailHandMat.color.set(look.gloves === 'both' ? look.glovesColour : look.skin);
-      const longSleeves = ['longsleeve', 'hoodie', 'jacket', 'vest'].includes(look.top);
-      sleeveMat.color.set(look.top === 'vest' ? look.topAccent : look.topColour);
-      shirtMat.color.set(look.top === 'vest' ? look.topAccent : look.topColour);
+      const longSleeves = ['longsleeve', 'hoodie', 'jacket', 'vest', 'shirt', 'sweater', 'rugby', 'windbreaker'].includes(look.top);
+      // Sleeves carry the top's pattern (a sweater vest shows plain shirt sleeves in the trim colour).
+      const patterned = look.top !== 'vest' && look.topPattern && look.topPattern !== 'solid';
+      const tex = patterned ? patternTexture(look.topPattern, look.topColour, look.topAccent, [2, 2]) : null;
+      for (const m of [sleeveMat, shirtMat]) {
+        m.map = tex;
+        m.color.set(tex ? '#ffffff' : look.top === 'vest' ? look.topAccent : look.topColour);
+        m.needsUpdate = true;
+      }
       for (const arm of forearms) arm.material = longSleeves ? sleeveMat : skinMat;
+      for (const u of uppers) u.material = look.top === 'tank' ? skinMat : shirtMat;
+      if (wristwear) {
+        wristwear.visible = look.wrist === 'watch' || look.wrist === 'sweatband' || (look.wrist === 'bracelet' && !longSleeves);
+        wristMat.color.set(look.wristColour);
+        wristwear.scale.set(1, 1, look.wrist === 'sweatband' ? 3 : look.wrist === 'bracelet' ? 0.5 : 1);
+      }
       for (const t of tattoos) t.visible = !longSleeves && look.tattoos && look.tattoos !== 'none';
     },
 
