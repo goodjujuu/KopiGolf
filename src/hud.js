@@ -9,7 +9,7 @@ import { BIOMES } from './courses/biomes.js';
 // DOM overlay: hole badge, buttons, power meter, club chip, shot feedback, result card and the
 // overhead map. It reads the session and writes intents back to it; it never touches the 3D scene.
 
-export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRestart, onHome }) {
+export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRestart, onHome, onCancelSwing }) {
   const el = (id) => document.getElementById(id);
   const ui = {
     num: el('hole-num'),
@@ -23,6 +23,7 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
     windText: el('wind-text'),
     mapBtn: el('btn-map'),
     restartBtn: el('btn-restart'),
+    cancelSwing: el('btn-cancel-swing'),
     lookBtn: el('btn-look'),
     sheet: el('map-sheet'),
     closeBtn: el('btn-map-close'),
@@ -135,6 +136,11 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
       ui.mapDist.textContent = `${yardsToPin} yd to the pin`;
     }
     ui.hud.hidden = s.screen !== 'play';
+    // Reset swing shows only while the club is going back.
+    const swinging = s.phase === 'swing';
+    if (ui.cancelSwing.hidden === swinging) ui.cancelSwing.hidden = !swinging;
+    if (!swinging) ui.cancelSwing.classList.remove('is-hot');
+    ui.cancelSwing.classList.toggle('is-right', s.swingSide === 'right');
     ui.restartBtn.hidden = s.mode === 'match'; // no do-overs in a match
 
     // Wind chip: arrow shows where the wind blows relative to the way you're aiming.
@@ -158,7 +164,7 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
       card.setAttribute('aria-pressed', String(id === s.club));
       card.querySelector('.club-card-tag').hidden = id !== s.suggestedClub;
     }
-    ui.hint.hidden = Boolean(s.hintSeen) || (s.phase !== 'idle' && s.phase !== 'swing');
+    ui.hint.hidden = Boolean(s.hintSeen) || s.phase !== 'idle'; // out of the way of Reset swing during the backswing
 
     ui.mapBtn.setAttribute('aria-pressed', String(s.mapOpen));
     ui.lookBtn.setAttribute('aria-pressed', String(s.lookAhead));
@@ -200,8 +206,19 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
     }
   });
 
+  // Reset swing tapped with a second finger (the first is still holding the backswing).
+  ui.cancelSwing.addEventListener('click', () => { tap(); onCancelSwing?.(); });
+
   let toastTimer = 0;
   return {
+    // Screen box of the Reset swing button while it's showing (for slide-to-cancel), else null.
+    cancelZone() {
+      if (ui.cancelSwing.hidden) return null;
+      const r = ui.cancelSwing.getBoundingClientRect();
+      const pad = 12; // a little forgiving around the edges
+      return { left: r.left - pad, right: r.right + pad, top: r.top - pad, bottom: r.bottom + pad };
+    },
+    cancelHover(on) { ui.cancelSwing.classList.toggle('is-hot', on); },
     // Vertical meter that fills as you pull the club back. Pass null to hide it.
     showPower(fraction) {
       if (fraction === null) { ui.power.classList.remove('is-on'); return; }

@@ -23,6 +23,7 @@ export function createSession() {
     toPin: 0,           // metres from the ball to the pin
     ballAt: null,       // { x, z } of the ball's current lie
     result: null,       // { title, strokes, par } once the ball is in the cup
+    swingSide: 'right', // which bottom corner the Reset swing button uses (away from the finger)
     hintSeen: false,    // hide the swing instructions after the first shot
     mapOpen: false,
     lookAhead: false,

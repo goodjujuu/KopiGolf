@@ -69,9 +69,10 @@ const hud = createHUD(session, {
   onRestart: restartHole,
   onHome: goHome,
   onSelectClub: (id) => controller.selectClub(id),
+  onCancelSwing: () => swingInput.reset(),
 });
 const controller = createGameController({ game, session, hud });
-createSwingInput(stage, controller.input);
+const swingInput = createSwingInput(stage, controller.input);
 
 createHome(session, {
   onStartPractice: (settings) => {

@@ -205,11 +205,17 @@ export function createGameController({ game, session, hud }) {
       game.club.setSwing(-fraction * (club.maxBackswing ?? FULL_BACKSWING));
       hud.showPower(fraction);
     },
-    cancel() {
+    backStart(side) {
+      session.set({ swingSide: side });
+    },
+    cancel({ reset = false } = {}) {
       game.club.release();
       hud.showPower(null);
       setPhase('idle');
+      if (reset) hud.toast('Swing reset', 'No stroke taken · line it up again');
     },
+    cancelZone: () => hud.cancelZone(),
+    cancelHover: (on) => hud.cancelHover(on),
     impact: hit,
   };
 

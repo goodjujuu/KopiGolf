@@ -6,7 +6,9 @@ import { SWING, clamp } from '../config.js';
 //   drag down                  → backswing    handlers.back(fraction 0..1) while the club follows the finger
 //   then flick back up past    → impact       handlers.impact({ power, rawPower, tempo, deviation })
 //   where the finger started
-//   lift before impact         → cancel       handlers.cancel()
+//   lift before impact         → cancel       handlers.cancel({ reset: true })
+//   slide onto the Reset swing → cancel       handlers.cancel()   (handlers.cancelZone() gives its box)
+//   button during the backswing
 //
 //   power     how far you pulled back (rawPower), scaled down if the flick was slow (tempo)
 //   tempo     1 for a quick flick, down to SWING.minTempo for a slow push
@@ -14,6 +16,7 @@ import { SWING, clamp } from '../config.js';
 
 export function createSwingInput(surface, handlers) {
   let mode = 'none'; // 'none' | 'pending' | 'aim' | 'back' | 'down'
+  let zoneArmed = false; // the finger has been outside the Reset swing button since the swing began
   let pointerId = null;
   let start = null;
   let bottom = null;
@@ -49,7 +52,14 @@ export function createSwingInput(surface, handlers) {
 
     if (mode === 'pending') {
       if (Math.abs(dx) > SWING.startThresholdPx && Math.abs(dx) > Math.abs(dy) * 1.2) mode = 'aim';
-      else if (dy > SWING.startThresholdPx) { mode = 'back'; bottom = { x, y, t }; }
+      else if (dy > SWING.startThresholdPx) {
+        mode = 'back';
+        bottom = { x, y, t };
+        zoneArmed = false;
+        // Put the Reset swing button on the far side from the finger.
+        const r = surface.getBoundingClientRect();
+        handlers.backStart?.(x - r.left < r.width / 2 ? 'right' : 'left');
+      }
       else return;
     }
 
@@ -61,6 +71,19 @@ export function createSwingInput(surface, handlers) {
 
     const fullDraw = height * SWING.fullDrawFraction;
     const frac = clamp(dy / fullDraw, 0, 1);
+
+    // Sliding onto the Reset swing button calls the shot off.
+    const zone = handlers.cancelZone?.();
+    if (zone) {
+      const inside = x >= zone.left && x <= zone.right && y >= zone.top && y <= zone.bottom;
+      handlers.cancelHover?.(inside && zoneArmed);
+      if (!inside) zoneArmed = true;
+      else if (zoneArmed) {
+        finish();
+        handlers.cancel({ reset: true });
+        return;
+      }
+    }
 
     if (mode === 'back') {
       if (y >= bottom.y) bottom = { x, y, t };
@@ -94,8 +117,17 @@ export function createSwingInput(surface, handlers) {
     if (e.pointerId !== pointerId) return;
     const wasSwinging = mode === 'back' || mode === 'down';
     finish();
-    if (wasSwinging) handlers.cancel();
+    if (wasSwinging) handlers.cancel({ reset: true }); // lifting off mid-swing is a reset too
   };
   surface.addEventListener('pointerup', end);
   surface.addEventListener('pointercancel', end);
+
+  return {
+    // Drop the gesture in progress (Reset swing tapped with another finger).
+    reset() {
+      const wasSwinging = mode === 'back' || mode === 'down';
+      finish();
+      if (wasSwinging) handlers.cancel({ reset: true });
+    },
+  };
 }
