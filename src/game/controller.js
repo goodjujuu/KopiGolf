@@ -94,6 +94,7 @@ export function createGameController({ game, session, hud }) {
   let timer = 0;
   let wind = drawWind('calm');
   let hitThisShot = false;
+  let maxStrokes = Infinity;
 
   function setPhase(p) {
     phase = p;
@@ -101,10 +102,13 @@ export function createGameController({ game, session, hud }) {
   }
 
   // settings: { timeOfDay: 'day' | 'sunset' | 'night', wind: 'calm' | 'breezy' | 'windy' | 'stormy' | 'hurricane' }
-  function startHole(next, settings = session.state.settings) {
+  // options.wind: use this exact wind (match play: everyone on a hole gets the same conditions)
+  // options.maxStrokes: pick the ball up once you reach this many (keeps a match moving)
+  function startHole(next, settings = session.state.settings, options = {}) {
     hole = next;
     timer = 0; // drop any pending settle / penalty from a shot still in the air
-    wind = drawWind(settings.wind);
+    maxStrokes = options.maxStrokes ?? Infinity;
+    wind = options.wind ?? drawWind(settings.wind);
     game.loadHole(hole);
     game.setTimeOfDay(settings.timeOfDay);
     session.set({ strokes: 0, result: null, lookAhead: false, mapOpen: false, bagOpen: false, wind });
@@ -240,14 +244,24 @@ export function createGameController({ game, session, hud }) {
     if (timer > 0) return;
 
     if (phase === 'settle') {
-      setLie(body.p.x, body.p.z);
+      if (!pickUpIfOverLimit()) setLie(body.p.x, body.p.z);
     } else if (phase === 'penalty') {
       session.set({ strokes: session.state.strokes + 1 });
-      setLie(lie.x, lie.z); // replay from where the last shot was hit
+      if (!pickUpIfOverLimit()) setLie(lie.x, lie.z); // replay from where the last shot was hit
     } else if (phase === 'holed') {
       const strokes = session.state.strokes;
       session.set({ result: { title: scoreName(strokes, hole.par), strokes, par: hole.par } });
     }
+  }
+
+  // Match play: at the stroke limit the ball is picked up and the hole scores as that limit.
+  function pickUpIfOverLimit() {
+    const strokes = session.state.strokes;
+    if (strokes < maxStrokes) return false;
+    setPhase('holed');
+    game.setBallVisible(false);
+    session.set({ result: { title: 'Picked up', strokes, par: hole.par, pickedUp: true } });
+    return true;
   }
 
   return { startHole, update, input, selectClub };

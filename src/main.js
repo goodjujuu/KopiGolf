@@ -2,7 +2,9 @@ import { createSession } from './state.js';
 import { CATALOG } from './courses/catalog.js';
 import { createGameScene } from './scene.js';
 import { createHUD } from './hud.js';
-import { createGameController } from './game/controller.js';
+import { createGameController, drawWind } from './game/controller.js';
+import { MAX_STROKES, createMatch, currentHole, finishHole, isLastTurn, nextHole, nextTurn, recordTurn } from './game/match.js';
+import { createMatchSetup, createMatchOverlay } from './ui/match.js';
 import { createSwingInput } from './input/swing.js';
 import { createHome, loadSavedSettings } from './ui/home.js';
 import { createLocker } from './ui/locker.js';
@@ -19,16 +21,47 @@ session.set({ settings: loadSavedSettings() });
 const game = createGameScene(document.getElementById('scene'));
 
 // Practice mode always plays the practice map. (Match play will choose holes from CATALOG.)
-let currentHole = CATALOG.practice;
-const restartHole = () => controller.startHole(currentHole);
+let activeHole = CATALOG.practice;
+const restartHole = () => controller.startHole(activeHole);
 const playTour = (index) => {
   const hole = CATALOG.tour.hole(index);
   if (!hole) return;
-  currentHole = hole;
+  activeHole = hole;
   session.set({ screen: 'play', mode: 'tour', tourIndex: index, tourCount: CATALOG.tour.count, hole });
   controller.startHole(hole, session.state.settings);
 };
-const goHome = () => session.set({ screen: 'home', mapOpen: false, bagOpen: false });
+const goHome = () => session.set({ screen: 'home', mapOpen: false, bagOpen: false, match: null, mode: session.state.mode === 'match' ? 'tour' : session.state.mode });
+
+// ---------- Random best of 3 (pass the phone) ----------
+// Load the match's current hole with its shared wind; the hand-off card sits on top while the
+// camera shows the hole. Each player starts fresh from the tee with the same conditions.
+const loadMatchHole = () => {
+  const m = session.state.match;
+  const mh = currentHole(m);
+  if (!mh.wind) mh.wind = drawWind(mh.windLevel);
+  const hole = CATALOG.tour.hole(mh.course);
+  activeHole = hole;
+  session.set({ hole, match: m });
+  controller.startHole(hole, session.state.settings, { wind: mh.wind, maxStrokes: MAX_STROKES });
+  session.set({ lookAhead: m.stage === 'handoff' });
+};
+const startMatch = (names) => {
+  const match = createMatch(names, { courseCount: CATALOG.tour.count });
+  session.set({ screen: 'play', mode: 'match', match, mapOpen: false, bagOpen: false });
+  loadMatchHole();
+};
+const matchAdvance = () => {
+  const m = session.state.match;
+  if (!m) return;
+  if (m.stage === 'turnDone') {
+    if (isLastTurn(m)) finishHole(m);
+    else nextTurn(m);
+  } else if (m.stage === 'holeResult') {
+    nextHole(m);
+  }
+  session.set({ match: m });
+  if (m.stage === 'handoff') loadMatchHole();
+};
 
 const hud = createHUD(session, {
   onPlayAgain: restartHole,
@@ -42,20 +75,39 @@ createSwingInput(stage, controller.input);
 
 createHome(session, {
   onStartPractice: (settings) => {
-    currentHole = CATALOG.practice;
-    session.set({ screen: 'play', mode: 'practice', settings, hole: currentHole });
-    controller.startHole(currentHole, settings);
+    activeHole = CATALOG.practice;
+    session.set({ screen: 'play', mode: 'practice', settings, hole: activeHole });
+    controller.startHole(activeHole, settings);
   },
 });
 
 createLocker(session, { onChange: (look) => game.setLook(look) });
 document.getElementById('btn-open-locker').addEventListener('click', () => session.set({ screen: 'locker' }));
 createTourScreen(session, { onPlay: playTour });
+createMatchSetup({ onStart: startMatch });
+createMatchOverlay(session, {
+  onTeeOff: () => {
+    const m = session.state.match;
+    m.stage = 'playing';
+    session.set({ match: m, lookAhead: false });
+  },
+  onNextTurn: matchAdvance,
+  onNextHole: matchAdvance,
+  onRematch: () => startMatch(session.state.match.players.map((p) => p.name)),
+  onHome: goHome,
+});
+// A player holing out (or picking up) ends their turn.
+session.subscribe((s) => {
+  const m = s.match;
+  if (s.mode !== 'match' || !m || m.stage !== 'playing' || !s.result) return;
+  recordTurn(m, s.result.strokes, s.result.title);
+  session.set({ match: m });
+});
 document.getElementById('btn-open-tour').addEventListener('click', () => session.set({ screen: 'tour' }));
 
 // The course sits behind the home screen as a live backdrop, seen from the look-ahead camera.
-session.set({ hole: currentHole });
-controller.startHole(currentHole);
+session.set({ hole: activeHole });
+controller.startHole(activeHole);
 
 let lastTimeOfDay = session.state.settings.timeOfDay;
 session.subscribe((s) => {

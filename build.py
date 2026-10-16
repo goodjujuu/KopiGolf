@@ -47,11 +47,13 @@ MODULES = [
     "src/scene.js",
     "src/input/swing.js",
     "src/game/controller.js",
+    "src/game/match.js",
     "src/ui/clubArt.js",
     "src/hud.js",
     "src/ui/home.js",
     "src/ui/locker.js",
     "src/ui/tour.js",
+    "src/ui/match.js",
     "src/main.js",
 ]
 

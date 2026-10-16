@@ -123,12 +123,19 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
       ui.num.textContent = s.hole.practice ? 'P' : s.hole.number;
       ui.name.textContent = s.hole.city ?? s.hole.name;
       ui.meta.textContent = `Par ${s.hole.par} · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
+      if (s.mode === 'match' && s.match) {
+        const mh = s.match.holes[s.match.holeNo];
+        const who = s.match.players[mh.players[s.match.turn]]?.name ?? '';
+        ui.num.textContent = mh.playoff ? 'SD' : s.match.holeNo + 1;
+        ui.meta.textContent = `${who} · Par ${s.hole.par} · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
+      }
       ui.sr.textContent = `${s.hole.practice ? 'Practice' : `Hole ${s.hole.number}`}, ${s.hole.name}, par ${s.hole.par}, ${holeYards} yards, ${s.strokes} strokes so far.`;
       ui.mapKicker.textContent = `Hole ${s.hole.number} · Par ${s.hole.par}`;
       ui.mapTitle.textContent = s.hole.city ? `${s.hole.city} · ${s.hole.name}` : s.hole.name;
       ui.mapDist.textContent = `${yardsToPin} yd to the pin`;
     }
     ui.hud.hidden = s.screen !== 'play';
+    ui.restartBtn.hidden = s.mode === 'match'; // no do-overs in a match
 
     // Wind chip: arrow shows where the wind blows relative to the way you're aiming.
     const windOn = s.wind && s.wind.speed >= 0.5;
@@ -181,8 +188,8 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
 
     if (s.result !== lastResult) {
       lastResult = s.result;
-      ui.result.hidden = !s.result;
-      if (s.result) {
+      ui.result.hidden = !s.result || s.mode === 'match'; // matches show their own cards
+      if (s.result && s.mode !== 'match') {
         ui.resultKicker.textContent = s.hole ? (s.hole.practice ? `Practice · ${s.hole.name}` : `Hole ${s.hole.number} · ${s.hole.city}`) : '';
         const hasNext = s.mode === 'tour' && s.tourIndex + 1 < s.tourCount;
         ui.nextBtn.hidden = !hasNext;

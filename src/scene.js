@@ -63,6 +63,7 @@ export function createGameScene(canvas) {
   let clubHideTimer = 0;
 
   function loadHole(next) {
+    if (next === hole && world) { snapCamera = true; return; } // same hole again (restart, next player): keep the world
     hole = next;
     if (world) { scene.remove(world.group); world.dispose(); }
     world = buildWorld(hole);

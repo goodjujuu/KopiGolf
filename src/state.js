@@ -5,7 +5,8 @@ export function createSession() {
   const listeners = new Set();
   const state = {
     screen: 'home',     // 'home' | 'locker' | 'tour' | 'play'
-    mode: 'practice',   // 'practice' | 'tour' (later: 'match')
+    mode: 'practice',   // 'practice' | 'tour' | 'match'
+    match: null,        // best-of-3 match in progress (game/match.js)
     tourIndex: 0,
     tourCount: 0,
     settings: { timeOfDay: 'day', wind: 'calm' },
