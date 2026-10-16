@@ -92,6 +92,11 @@ export function createGameScene(canvas) {
     computePoses();
   }
 
+  function setAimLength(length) {
+    aimLength = length;
+    aimLine.place(lie, aimYaw, aimLength, groundY);
+  }
+
   function beginFlight(yaw) {
     cameraMode = 'flight';
     flightDir.set(-Math.sin(yaw), 0, -Math.cos(yaw));
@@ -196,6 +201,8 @@ export function createGameScene(canvas) {
     loadHole,
     placeAtLie,
     setAim,
+    setAimLength,
+    setClubKind(kind) { club.setKind(kind); },
     beginFlight,
     resize,
     club,

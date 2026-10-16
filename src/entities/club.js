@@ -13,7 +13,7 @@ import { BALL_RADIUS } from './ball.js';
 //          └ lean  fixed address lean: shaft tilts left and toward the camera
 //             ├ grip
 //             ├ shaft
-//             └ head  sole kept flat, face toward the target
+//             └ head  one per kind (iron, wedge, wood, putter); sole kept flat, face toward the target
 //
 // Swing angle convention (radians):
 //   negative = backswing (head comes back toward the camera and up)
@@ -61,13 +61,20 @@ export function createClub() {
   shaft.position.y = -L * 0.61;
   lean.add(shaft);
 
-  const head = new THREE.Mesh(
-    new THREE.BoxGeometry(HEAD.w, HEAD.h, HEAD.d),
-    new THREE.MeshPhongMaterial({ color: 0x4b5966, specular: 0x99a4ad, shininess: 50, flatShading: true })
-  );
-  head.position.y = -L;
-  head.quaternion.copy(leanQuat).invert(); // cancel the lean so the sole sits flat
-  lean.add(head);
+  // One head per kind of club; setKind() shows the right one.
+  const heads = {
+    iron: makeHead(new THREE.BoxGeometry(HEAD.w, HEAD.h, HEAD.d), 0x9aa5b1),
+    wedge: makeHead(new THREE.BoxGeometry(0.09, 0.05, 0.03), 0x2e343c),
+    putter: makeHead(new THREE.BoxGeometry(0.12, 0.032, 0.032), 0xd5dbe2),
+    wood: makeHead(new THREE.SphereGeometry(0.05, 14, 10).scale(1.15, 0.5, 0.95), 0x26324a),
+  };
+  for (const h of Object.values(heads)) {
+    h.position.y = -L;
+    h.quaternion.copy(leanQuat).invert(); // cancel the lean so the sole sits flat
+    h.visible = false;
+    lean.add(h);
+  }
+  heads.iron.visible = true;
 
   root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
@@ -86,6 +93,10 @@ export function createClub() {
       root.rotation.set(0, aimYaw, 0);
       offset.set(-0.015, 0, BALL_RADIUS + HEAD.d / 2 + 0.006).applyAxisAngle(UP, aimYaw);
       root.position.set(ballPos.x + offset.x, groundY + HEAD.h / 2, ballPos.z + offset.z);
+    },
+
+    setKind(kind) {
+      for (const [k, h] of Object.entries(heads)) h.visible = k === kind;
     },
 
     setSwing(a) { mode = 'manual'; target = a; },
@@ -113,4 +124,11 @@ export function createClub() {
       hands.position.y = handsAtAddress.y + lift;
     },
   };
+}
+
+function makeHead(geometry, color) {
+  return new THREE.Mesh(
+    geometry,
+    new THREE.MeshPhongMaterial({ color, specular: 0x99a4ad, shininess: 50, flatShading: true })
+  );
 }

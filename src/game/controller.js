@@ -1,5 +1,5 @@
-import { CLUBS, SWING, PHYSICS, DEG, clamp } from '../config.js';
-import { createBallBody, placeBody, launchBody, stepBody } from '../physics/ball.js';
+import { CLUBS, CLUB_ORDER, FULL_BACKSWING, SWING, PHYSICS, DEG, METRES_TO_YARDS, clamp } from '../config.js';
+import { createBallBody, placeBody, launchBody, stepBody, planShot } from '../physics/ball.js';
 
 // The rules of a hole: whose turn it is to swing, what a swing does to the ball, what happens
 // when it lands, scoring. It drives the 3D scene and the HUD but owns no drawing itself.
@@ -31,10 +31,19 @@ export function describeShot({ rawPower, tempo, deviation }, isPutt) {
   return { title: direction, sub: `Power ${percent}` };
 }
 
+// The club Golf Dreams would hand you: putter on the green, otherwise the shortest club that
+// reaches the pin at full power (or the driver if nothing does).
+export function suggestClub(distanceMetres, surface) {
+  if (surface === 'green') return CLUBS.P;
+  const yards = distanceMetres * METRES_TO_YARDS;
+  const reaching = CLUB_ORDER.map((id) => CLUBS[id]).filter((c) => c.yards && c.yards >= yards);
+  return reaching.length ? reaching.reduce((a, b) => (b.yards < a.yards ? b : a)) : CLUBS.D;
+}
+
 export function createGameController({ game, session, hud }) {
   const body = createBallBody();
   let hole = null;
-  let club = CLUBS.iron;
+  let club = CLUBS['7i'];
   let lie = { x: 0, z: 0 };
   let baseYaw = 0;
   let aimYaw = 0;
@@ -61,14 +70,27 @@ export function createGameController({ game, session, hud }) {
   function setLie(x, z) {
     placeBody(body, hole, x, z);
     lie = { x, z };
-    club = body.surface === 'green' ? CLUBS.putter : CLUBS.iron;
     baseYaw = Math.atan2(-(hole.pin[0] - x), -(hole.pin[2] - z));
     aimYaw = baseYaw;
     const toPin = distanceToPin(x, z);
-    const aimLength = club === CLUBS.putter ? clamp(toPin, 1.5, 10) : 18;
-    game.placeAtLie(body.p, aimYaw, aimLength);
-    session.set({ club: club.id, lieSurface: body.surface, toPin, ballAt: { x, z } });
+    club = suggestClub(toPin, body.surface);
+    game.placeAtLie(body.p, aimYaw, aimLengthFor(club, toPin));
+    game.setClubKind(club.kind);
+    session.set({ club: club.id, suggestedClub: club.id, lieSurface: body.surface, toPin, ballAt: { x, z } });
     setPhase('idle');
+  }
+
+  function aimLengthFor(c, toPin) {
+    return c.kind === 'putter' ? clamp(toPin, 1.5, 10) : 18;
+  }
+
+  // Player picked a club from the bag.
+  function selectClub(id) {
+    if (!CLUBS[id] || (phase !== 'idle')) return;
+    club = CLUBS[id];
+    game.setClubKind(club.kind);
+    game.setAimLength(aimLengthFor(club, session.state.toPin));
+    session.set({ club: club.id });
   }
 
   function hit(shot) {
@@ -76,7 +98,7 @@ export function createGameController({ game, session, hud }) {
     session.set({ strokes: session.state.strokes + 1, hintSeen: true });
     game.club.followThrough();
 
-    const isPutt = club === CLUBS.putter;
+    const isPutt = club.kind === 'putter';
     if (isPutt) {
       const distance = club.maxRoll * shot.rawPower; // putts are judged on length and line, not speed
       const speed = Math.sqrt(2 * PHYSICS.surfaces.green.roll * PHYSICS.gravity * distance);
@@ -84,10 +106,12 @@ export function createGameController({ game, session, hud }) {
       launchBody(body, { yaw, speed, launchRad: 0, curve: 0 });
     } else {
       const launch = club.launchDeg * DEG;
-      const carry = club.maxCarry * shot.power;
-      const speed = Math.sqrt((carry * PHYSICS.gravity) / Math.sin(2 * launch)) * PHYSICS.carryCompensation;
+      const carry = Math.max(1, (club.yards / METRES_TO_YARDS) * shot.power);
+      const { speed, time } = planShot(carry, launch);
       const yaw = aimYaw - shot.deviation * SWING.maxDeviationDeg * 0.5 * DEG; // right flick → right
-      launchBody(body, { yaw, speed, launchRad: launch, curve: shot.deviation * SWING.maxCurve * shot.power });
+      // Sideways bend sized so a fully crooked flick misses by curveMissFraction of the carry.
+      const curve = (2 * SWING.curveMissFraction * carry * shot.deviation) / (time * time);
+      launchBody(body, { yaw, speed, launchRad: launch, curve });
     }
 
     game.beginFlight(aimYaw);
@@ -98,7 +122,7 @@ export function createGameController({ game, session, hud }) {
 
   // Called by the swing gesture.
   const input = {
-    canStart: () => phase === 'idle' && !session.state.mapOpen,
+    canStart: () => phase === 'idle' && !session.state.mapOpen && !session.state.bagOpen,
     begin() {
       if (session.state.lookAhead) session.set({ lookAhead: false });
     },
@@ -109,7 +133,7 @@ export function createGameController({ game, session, hud }) {
     },
     back(fraction) {
       if (phase !== 'swing') setPhase('swing');
-      game.club.setSwing(-fraction * club.maxBackswing);
+      game.club.setSwing(-fraction * (club.maxBackswing ?? FULL_BACKSWING));
       hud.showPower(fraction);
     },
     cancel() {
@@ -155,5 +179,5 @@ export function createGameController({ game, session, hud }) {
     }
   }
 
-  return { startHole, update, input };
+  return { startHole, update, input, selectClub };
 }

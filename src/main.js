@@ -15,6 +15,7 @@ const session = createSession();
 const game = createGameScene(document.getElementById('scene'));
 const hud = createHUD(session, {
   onPlayAgain: () => controller.startHole(CATALOG.hole(session.state.holeIndex)),
+  onSelectClub: (id) => controller.selectClub(id),
 });
 const controller = createGameController({ game, session, hud });
 createSwingInput(stage, controller.input);

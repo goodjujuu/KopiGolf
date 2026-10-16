@@ -45,11 +45,26 @@ export const METRES_TO_YARDS = 1.09361;
 export const DEG = Math.PI / 180;
 export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-// Clubs. The iron is used everywhere except the green, where the putter takes over.
+// The bag, in Golf Dreams order. `yards` is the full-power carry. `kind` picks the 3D head shape;
+// `tier` picks the card colour in the club picker.
+// Putter distance is how far it rolls on the green at full power.
+export const CLUB_ORDER = ['P', 'D', '3w', '3i', '4i', '5i', '6i', '7i', '8i', '9i', 'Pw', 'Sw', 'Lw'];
 export const CLUBS = {
-  iron: { id: 'iron', name: 'Iron', maxCarry: 85, launchDeg: 30, maxBackswing: 1.75 },
-  putter: { id: 'putter', name: 'Putter', maxRoll: 16, maxBackswing: 0.7 },
+  P: { id: 'P', name: 'Putter', kind: 'putter', tier: 'putter', maxRoll: 16, maxBackswing: 0.7 },
+  D: { id: 'D', name: 'Driver', kind: 'wood', tier: 'wood', yards: 280, launchDeg: 12 },
+  '3w': { id: '3w', name: '3 wood', kind: 'wood', tier: 'wood', yards: 250, launchDeg: 14 },
+  '3i': { id: '3i', name: '3 iron', kind: 'iron', tier: 'long', yards: 230, launchDeg: 17 },
+  '4i': { id: '4i', name: '4 iron', kind: 'iron', tier: 'long', yards: 210, launchDeg: 19 },
+  '5i': { id: '5i', name: '5 iron', kind: 'iron', tier: 'mid', yards: 200, launchDeg: 21 },
+  '6i': { id: '6i', name: '6 iron', kind: 'iron', tier: 'mid', yards: 190, launchDeg: 24 },
+  '7i': { id: '7i', name: '7 iron', kind: 'iron', tier: 'long', yards: 180, launchDeg: 27 },
+  '8i': { id: '8i', name: '8 iron', kind: 'iron', tier: 'mid', yards: 170, launchDeg: 31 },
+  '9i': { id: '9i', name: '9 iron', kind: 'iron', tier: 'mid', yards: 150, launchDeg: 35 },
+  Pw: { id: 'Pw', name: 'Pitching wedge', kind: 'wedge', tier: 'wedge', yards: 140, launchDeg: 40 },
+  Sw: { id: 'Sw', name: 'Sand wedge', kind: 'wedge', tier: 'wedge', yards: 120, launchDeg: 45 },
+  Lw: { id: 'Lw', name: 'Lob wedge', kind: 'wedge', tier: 'mid', yards: 100, launchDeg: 50 },
 };
+export const FULL_BACKSWING = 1.75; // radians, for every club except the putter
 
 // Swing gesture tuning. Distances are fractions of the stage height so every phone feels the same.
 export const SWING = {
@@ -61,7 +76,7 @@ export const SWING = {
   minTempo: 0.55,               // a very slow flick still hits, at 55% of the power (putts ignore tempo)
   maxSlope: 0.5,                // sideways drift per pixel of flick that counts as fully crooked
   maxDeviationDeg: 10,          // launch direction error for a fully crooked flick
-  maxCurve: 2.2,                // sideways bend (m/s²) for a fully crooked full-power flick
+  curveMissFraction: 0.08,      // a fully crooked flick also bends the ball this share of the carry sideways
   aimDegPerPx: 0.15,            // sideways drag to aim
   maxAimOffsetDeg: 60,
 };
@@ -71,7 +86,6 @@ export const PHYSICS = {
   gravity: 9.81,
   ballRadius: 0.045,     // a real golf ball is 42.7 mm across
   airDrag: 0.08,
-  carryCompensation: 1.09, // calibrated so a 100% shot carries the club's maxCarry
   minBounceSpeed: 1.2,
   restSpeed: 0.08,
   cupRadius: 0.11,       // generous for touch play (a real cup is 0.054 m)

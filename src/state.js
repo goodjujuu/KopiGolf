@@ -8,7 +8,9 @@ export function createSession() {
     hole: null,
     strokes: 0,
     phase: 'idle',      // 'idle' → 'swing' → 'flight' → 'settle' → 'idle' …, or 'penalty' / 'holed'
-    club: 'iron',       // 'iron' | 'putter'
+    club: '7i',         // id from CLUB_ORDER in config.js
+    suggestedClub: '7i',
+    bagOpen: false,     // club picker showing
     lieSurface: 'fairway',
     toPin: 0,           // metres from the ball to the pin
     ballAt: null,       // { x, z } of the ball's current lie

@@ -51,7 +51,11 @@
         <p>Drag down, then flick up to swing</p>
         <p class="swing-hint-sub">Drag sideways to aim</p>
       </div>
-      <p class="club-chip" id="club-chip">Iron</p>
+      <button class="club-chip" id="club-chip" type="button" aria-haspopup="dialog">
+        <span class="club-chip-badge" id="club-chip-badge">7i</span>
+        <span class="club-chip-text" id="club-chip-text">7 iron</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+      </button>
     </div>
   </div>
 
@@ -68,6 +72,26 @@
       </div>
       <canvas id="map-canvas" aria-label="Overhead view of the hole"></canvas>
       <p class="map-legend"><span class="dot dot-tee"></span>Tee <span class="dot dot-ball"></span>Ball <span class="dot dot-pin"></span>Pin <span class="map-dist" id="map-dist"></span></p>
+    </div>
+  </div>
+
+  <div class="map-sheet bag-sheet" id="bag-sheet" hidden>
+    <div class="map-panel" role="dialog" aria-modal="true" aria-labelledby="bag-title">
+      <div class="map-head">
+        <div>
+          <p class="map-kicker" id="bag-kicker">To the pin</p>
+          <h2 class="map-title" id="bag-title">Choose a club</h2>
+        </div>
+        <button class="close-btn" id="btn-bag-close" type="button" aria-label="Close club picker">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="bag-grid" id="bag-grid"></div>
+      <label class="bag-toggle" for="show-yardages">
+        <input type="checkbox" id="show-yardages" checked>
+        <span class="bag-check" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        Show yardages
+      </label>
     </div>
   </div>
 

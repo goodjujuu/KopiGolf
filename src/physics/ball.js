@@ -130,3 +130,45 @@ function holeOut(b, hole) {
   b.v.x = b.v.y = b.v.z = 0;
   return 'holed';
 }
+
+// ---------- shot planning ----------
+
+// Fly a ball over flat ground (same air model as above) and report where it first lands.
+function simulateCarry(speed, launchRad) {
+  const g = PHYSICS.gravity;
+  const dt = 1 / 240;
+  let x = 0;
+  let y = 0;
+  let vx = speed * Math.cos(launchRad);
+  let vy = speed * Math.sin(launchRad);
+  let t = 0;
+  while (t < 30) {
+    vy -= g * dt;
+    const drag = 1 - PHYSICS.airDrag * dt;
+    vx *= drag;
+    vy *= drag;
+    x += vx * dt;
+    y += vy * dt;
+    t += dt;
+    if (y <= 0 && vy < 0) break;
+  }
+  return { carry: x, time: t };
+}
+
+// Launch speed that carries `carry` metres at this launch angle, plus the flight time.
+const SPEED_CACHE = new Map();
+export function planShot(carry, launchRad) {
+  const key = `${carry.toFixed(1)}|${launchRad.toFixed(4)}`;
+  if (SPEED_CACHE.has(key)) return SPEED_CACHE.get(key);
+  let lo = 0;
+  let hi = 150;
+  for (let i = 0; i < 30; i++) {
+    const mid = (lo + hi) / 2;
+    if (simulateCarry(mid, launchRad).carry < carry) lo = mid;
+    else hi = mid;
+  }
+  const speed = (lo + hi) / 2;
+  const plan = { speed, time: simulateCarry(speed, launchRad).time };
+  SPEED_CACHE.set(key, plan);
+  return plan;
+}
