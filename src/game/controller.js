@@ -83,7 +83,9 @@ export function drawWind(level, random = Math.random) {
   return { speed, yaw, gust, x: -Math.sin(yaw) * speed, z: -Math.cos(yaw) * speed };
 }
 
-export function createGameController({ game, session, hud }) {
+// events (optional): onShot(shot) when you swing, onLie({ x, z, strokes }) when the ball comes to
+// rest for the next shot — online play forwards these so friends can watch your shots.
+export function createGameController({ game, session, hud, events = {} }) {
   const body = createBallBody();
   let hole = null;
   let club = CLUBS['7i'];
@@ -131,6 +133,7 @@ export function createGameController({ game, session, hud }) {
     game.placeAtLie(body.p, aimYaw);
     game.setClub(club.id);
     session.set({ club: club.id, suggestedClub: club.id, lieSurface: body.surface, toPin, ballAt: { x, z }, aimYaw });
+    events.onLie?.({ x, z, strokes: session.state.strokes });
     updateGuide();
     setPhase('idle');
   }
@@ -172,12 +175,14 @@ export function createGameController({ game, session, hud }) {
       const speed = Math.sqrt(2 * PHYSICS.surfaces.green.roll * PHYSICS.gravity * distance);
       const yaw = aimYaw - shot.deviation * SWING.maxDeviationDeg * 0.25 * DEG;
       launchBody(body, { yaw, speed, launchRad: 0, curve: 0 });
+      events.onShot?.({ from: { x: lie.x, z: lie.z }, yaw, speed, launchRad: 0, curve: 0, gustPhase: 0, n: session.state.strokes });
     } else {
       const { carry, speed, time, launchRad } = flightFor(club, shot.power);
       const yaw = aimYaw - shot.deviation * SWING.maxDeviationDeg * 0.5 * DEG; // right flick → right
       // Sideways bend sized so a fully crooked flick misses by curveMissFraction of the carry.
       const curve = (2 * SWING.curveMissFraction * carry * shot.deviation) / (time * time);
       launchBody(body, { yaw, speed, launchRad, curve, wind });
+      events.onShot?.({ from: { x: lie.x, z: lie.z }, yaw, speed, launchRad, curve, gustPhase: body.gustPhase, n: session.state.strokes });
     }
 
     game.beginFlight(aimYaw);
@@ -270,5 +275,5 @@ export function createGameController({ game, session, hud }) {
     return true;
   }
 
-  return { startHole, update, input, selectClub };
+  return { startHole, update, input, selectClub, events };
 }

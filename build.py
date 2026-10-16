@@ -41,6 +41,7 @@ MODULES = [
     "src/world/obstacles.js",
     "src/world/landscape.js",
     "src/world/builder.js",
+    "src/world/ghosts.js",
     "src/entities/clubDesigns.js",
     "src/entities/ball.js",
     "src/entities/clubHeads.js",
@@ -60,6 +61,7 @@ MODULES = [
     "src/ui/tour.js",
     "src/ui/match.js",
     "src/ui/online.js",
+    "src/ui/lineup.js",
     "src/main.js",
 ]
 

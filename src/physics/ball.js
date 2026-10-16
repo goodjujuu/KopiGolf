@@ -38,7 +38,7 @@ export function placeBody(body, hole, x, z) {
 
 // yaw: direction (radians about +y, 0 = toward −z). curve: sideways m/s², positive bends right.
 // wind: { x, z } wind velocity in m/s (or null for none); it pushes the ball while in the air.
-export function launchBody(body, { yaw, speed, launchRad, curve, wind = null }) {
+export function launchBody(body, { yaw, speed, launchRad, curve, wind = null, gustPhase = null }) {
   const fx = -Math.sin(yaw);
   const fz = -Math.cos(yaw);
   const horizontal = speed * Math.cos(launchRad);
@@ -50,7 +50,7 @@ export function launchBody(body, { yaw, speed, launchRad, curve, wind = null }) 
   body.wind.x = wind ? wind.x * PHYSICS.windPush : 0;
   body.wind.z = wind ? wind.z * PHYSICS.windPush : 0;
   body.gust = wind?.gust ?? 0;
-  body.gustPhase = Math.random() * Math.PI * 2;
+  body.gustPhase = gustPhase ?? Math.random() * Math.PI * 2; // passed in when replaying someone else's shot
   body.airTime = 0;
   body.state = launchRad > 0 ? 'air' : 'roll';
   body.bounces = 0;

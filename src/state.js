@@ -6,7 +6,8 @@ export function createSession() {
   const state = {
     screen: 'home',     // 'home' | 'locker' | 'tour' | 'lobby' | 'play'
     mode: 'practice',   // 'practice' | 'tour' | 'match' (pass the phone) | 'online'
-    online: null,       // online room status for the UI (game/onlinePlay.js)
+    online: null,
+    lineup: null,       // { players: [{ name, look }], title, sub } while the pre-match line-up shows       // online room status for the UI (game/onlinePlay.js)
     match: null,        // best-of-3 match in progress (game/match.js)
     tourIndex: 0,
     tourCount: 0,

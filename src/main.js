@@ -11,6 +11,8 @@ import { createSwingInput } from './input/swing.js';
 import { createHome, loadSavedSettings } from './ui/home.js';
 import { createLocker } from './ui/locker.js';
 import { createTourScreen } from './ui/tour.js';
+import { createLineup } from './ui/lineup.js';
+import { lookForName } from './avatar/looks.js';
 
 // Entry point: wires state, 3D scene, rules, input and HUD together, and handles screen-level
 // concerns (resizing, pausing in the background, blocking browser gestures that fight the game).
@@ -54,6 +56,15 @@ const startMatch = (names) => {
   const match = createMatch(names, { courseCount: CATALOG.tour.count });
   session.set({ screen: 'play', mode: 'match', match, mapOpen: false, bagOpen: false });
   loadMatchHole();
+  // Line everyone up first: player 1 wears this phone's Locker look; crew names get their
+  // preset, anyone else a look made from their name.
+  session.set({
+    lineup: {
+      players: names.map((name, i) => ({ name, look: i === 0 ? myLook : lookForName(name) })),
+      title: 'Random best of 3',
+      sub: `${names.length} golfers · pass the phone`,
+    },
+  });
 };
 const matchAdvance = () => {
   const m = session.state.match;
@@ -87,12 +98,20 @@ createHome(session, {
   },
 });
 
-createLocker(session, { onChange: (look) => game.setLook(look) });
+let myLook = {};
+createLocker(session, {
+  onChange: (look) => {
+    myLook = look;
+    game.setLook(look);
+    online?.setLook(look);
+  },
+});
 document.getElementById('btn-open-locker').addEventListener('click', () => session.set({ screen: 'locker' }));
 createTourScreen(session, { onPlay: playTour });
 createMatchSetup({ onStart: startMatch });
+createLineup(session);
 // Online: friends on their own phones.
-const online = createOnlinePlay({ session, controller, catalog: CATALOG, toast: (t, sub) => hud.toast(t, sub) });
+var online = createOnlinePlay({ session, controller, catalog: CATALOG, toast: (t, sub) => hud.toast(t, sub), getLook: () => myLook, friends: game.friends });
 createOnlineUI(session, online, { toast: (t, sub) => hud.toast(t, sub) });
 createMatchOverlay(session, {
   onTeeOff: () => {
@@ -138,7 +157,7 @@ new ResizeObserver(sizeStage).observe(stage);
 sizeStage();
 
 // Pause the course while the tab is hidden or the Locker (with its own preview) is open.
-const updatePaused = () => game.setPaused(document.hidden || session.state.screen === 'locker' || session.state.screen === 'tour' || session.state.screen === 'lobby');
+const updatePaused = () => game.setPaused(document.hidden || session.state.screen === 'locker' || session.state.screen === 'tour' || session.state.screen === 'lobby' || !!session.state.lineup);
 document.addEventListener('visibilitychange', updatePaused);
 session.subscribe(updatePaused);
 

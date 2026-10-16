@@ -8,7 +8,8 @@ import { MAX_STROKES } from './match.js';
 
 const ROOM_KEY = 'kopigolf.onlineRoom';
 
-export function createOnlinePlay({ session, controller, catalog, toast }) {
+// getLook(): this device's Locker look. friends: the scene's other-player layer (world/ghosts.js).
+export function createOnlinePlay({ session, controller, catalog, toast, getLook = () => ({}), friends = null }) {
   const mode = onlineMode();
   let api = null;
   let unsubscribe = null;
@@ -18,6 +19,7 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
   let loadedSeed = null;
   let teedOff = false; // this device is playing hole loadedK right now
   let lastScores = '';
+  let pendingLineup = null;
 
   const patch = (p) => session.set({ online: { ...session.state.online, ...p } });
   // Remember the room per device (per tab on the local test backend, where tabs share storage).
@@ -48,6 +50,7 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
   function follow(next) {
     unsubscribe?.();
     code = next;
+    api.setLook(code, getLook()).catch(() => {});
     try { store().setItem(ROOM_KEY, code); } catch { /* storage blocked */ }
     patch({ code });
     unsubscribe = api.subscribe(code, onRoom);
@@ -62,6 +65,7 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
     teedOff = false;
     try { store().removeItem(ROOM_KEY); } catch { /* storage blocked */ }
     patch({ code: null, room: null, view: null, teedOff: false, error: message });
+    friends?.clear();
     const s = session.state;
     if (s.mode === 'online' || s.screen === 'lobby') session.set({ screen: 'tour', mode: 'tour' });
   }
@@ -72,6 +76,7 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
     if (!room.players?.[api.me]) { stopFollowing('You left the room.'); return; }
 
     if (room.status === 'lobby') {
+      friends?.clear();
       loadedK = -1;
       teedOff = false;
       patch({ room, view: null, teedOff });
@@ -80,7 +85,20 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
     }
 
     const view = replayRoom(room, catalog.tour.count, api.me);
-    if (room.seed !== loadedSeed) { loadedSeed = room.seed; loadedK = -1; teedOff = false; lastScores = ''; }
+    if (room.seed !== loadedSeed) {
+      loadedSeed = room.seed;
+      loadedK = -1;
+      teedOff = false;
+      lastScores = '';
+      // A brand-new match: line everyone up first (after this update has been applied).
+      if (!room.scores) {
+        pendingLineup = {
+            players: view.order.map((id) => ({ name: room.players?.[id]?.name || 'Player', look: room.players?.[id]?.look ?? {} })),
+            title: 'Online match',
+            sub: `Room ${code} · best of 3 · ${view.order.length} golfers`,
+        };
+      }
+    }
 
     // Friends finishing while you play: a quick heads-up.
     announceScores(view);
@@ -90,8 +108,33 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
       loadHole(view);
     }
     if (!view.myTurn) teedOff = false;
+    syncFriends(view);
     patch({ room, view, teedOff });
     if (session.state.screen !== 'play' || session.state.mode !== 'online') session.set({ screen: 'play', mode: 'online' });
+    if (pendingLineup) {
+      const lineup = pendingLineup;
+      pendingLineup = null;
+      session.set({ lineup });
+    }
+  }
+
+  // Show everyone else on this hole on my course: where their ball is, and replay new swings.
+  function syncFriends(view) {
+    if (!friends) return;
+    if (view.state !== 'hole') { friends.clear(); return; }
+    const mh = view.match.holes[view.k];
+    const live = room.live?.[view.k] ?? {};
+    const list = mh.players
+      .filter((p) => p !== view.myIndex)
+      .map((p, i) => {
+        const id = view.order[p];
+        const l = live[id] ?? {};
+        return {
+          id, index: i, name: view.match.players[p].name, look: room.players?.[id]?.look ?? {},
+          lie: l.lie ?? null, shot: l.shot ?? null, done: !!l.done || mh.strokes[p] !== undefined,
+        };
+      });
+    friends.sync({ hole: catalog.tour.hole(mh.course), wind: mh.wind, friends: list });
   }
 
   function announceScores(view) {
@@ -118,6 +161,16 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
     session.set({ lookAhead: true });
   }
 
+  // My swings and where my ball ends up, for friends' screens.
+  controller.events.onShot = (shot) => {
+    if (session.state.mode !== 'online' || !teedOff || !code) return;
+    api.setLive(code, loadedK, { shot }).catch(() => {});
+  };
+  controller.events.onLie = (lie) => {
+    if (session.state.mode !== 'online' || !teedOff || !code) return;
+    api.setLive(code, loadedK, { lie: { x: lie.x, z: lie.z }, strokes: lie.strokes }).catch(() => {});
+  };
+
   // This device finished its hole: send the score.
   session.subscribe((s) => {
     if (s.mode !== 'online' || !teedOff || !s.result || !code) return;
@@ -125,6 +178,7 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
     teedOff = false;
     patch({ teedOff });
     api.submitScore(code, k, s.result.strokes, s.result.title).catch(() => patch({ error: 'Your score did not send. Check your connection.' }));
+    api.setLive(code, k, { done: true }).catch(() => {});
   });
 
   const actions = {
@@ -154,9 +208,11 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
       if (!view?.myTurn) return;
       if (view.k !== loadedK) loadHole(view);
       const mh = view.match.holes[view.k];
-      controller.startHole(catalog.tour.hole(mh.course), session.state.settings, { wind: mh.wind, maxStrokes: MAX_STROKES });
+      const hole = catalog.tour.hole(mh.course);
+      controller.startHole(hole, session.state.settings, { wind: mh.wind, maxStrokes: MAX_STROKES });
       teedOff = true;
       patch({ teedOff });
+      api.setLive(code, view.k, { lie: { x: hole.tee[0], z: hole.tee[2] }, strokes: 0, shot: null, done: false }).catch(() => {});
       session.set({ lookAhead: false });
     },
     pickUpFor: (index) => run(() => api.pickUpFor(code, session.state.online.view.k, room.order[index] ?? room.order?.[String(index)])),
@@ -172,6 +228,10 @@ export function createOnlinePlay({ session, controller, catalog, toast }) {
       return url.toString();
     },
     clearError: () => patch({ error: '' }),
+    // Locker changed: friends see the new look from the next update.
+    setLook(look) {
+      if (api && code) api.setLook(code, look).catch(() => {});
+    },
   };
 
   // Opened from an invite link, or refreshed mid-match: pick the room back up.

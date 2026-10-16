@@ -238,6 +238,23 @@ export const GOLFER_PRESETS = [
   },
 ];
 
+// A look for a player who isn't on this device's Locker (pass the phone): a crew member gets their
+// preset, anyone else a look generated from their name, so the same name always looks the same.
+export function lookForName(name) {
+  const key = String(name ?? '').toLowerCase().replace(/[^a-z]/g, '');
+  const preset = GOLFER_PRESETS.find((p) => p.id === key || p.name.toLowerCase() === key);
+  if (preset) return sanitizeLook({ ...DEFAULT_LOOK, ...preset.look });
+  let h = 2166136261;
+  for (const ch of key || 'player') h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  const random = () => {
+    h = (h + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(h ^ (h >>> 15), h | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return sanitizeLook(randomLook(random));
+}
+
 // Which preset (if any) the look currently matches.
 export function matchingPreset(look) {
   return GOLFER_PRESETS.find((p) => Object.entries(p.look).every(([k, v]) => look[k] === v))?.id ?? null;

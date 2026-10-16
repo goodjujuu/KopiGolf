@@ -3,6 +3,7 @@ import { LAYOUT, LIGHTING, DEG, REDUCED_MOTION } from './config.js';
 import { buildWorld } from './world/builder.js';
 import { createBall, BALL_RADIUS } from './entities/ball.js';
 import { createClub } from './entities/club.js';
+import { createGhosts } from './world/ghosts.js';
 
 // Owns the renderer, camera, lights and the frame loop. It draws whatever the game controller
 // tells it to; it has no game rules of its own.
@@ -44,6 +45,7 @@ export function createGameScene(canvas) {
   const aimLine = makeAimLine();        // ground dots, used for the putter
   const trajectory = makeTrajectory(); // dotted flight arc + landing ring, for every other club
   scene.add(ball.mesh, club.root, aimLine.mesh, trajectory.group);
+  const friends = createGhosts(scene); // other players' golfers and balls (online play)
 
   let world = null;
   let hole = null;
@@ -219,6 +221,7 @@ export function createGameScene(canvas) {
     }
 
     world?.update(t, camera.position);
+    friends.update(dt, t, camera);
     ball.update(t);
     club.update(t, dt);
 
@@ -240,6 +243,7 @@ export function createGameScene(canvas) {
     beginFlight,
     resize,
     club,
+    friends,
     setLookAhead(on) { lookAhead = on; },
     setBallPosition(p) { ball.mesh.position.set(p.x, p.y, p.z); },
     setBallVisible(on) { ball.mesh.visible = on; },

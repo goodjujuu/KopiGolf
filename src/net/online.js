@@ -10,6 +10,9 @@ import { createMatch, finishHole, MAX_STROKES } from '../game/match.js';
 //   order: [ids]            fixed when the match starts (player 0, 1, …)
 //   holeNo                  the hole everyone is on (anyone can move it on once a hole is done)
 //   scores/<hole>/<id>: { strokes, title }
+//   players/<id>/look                the golfer's Locker look (for the line-up and on-course avatars)
+//   live/<hole>/<id>: { lie, strokes, shot, done }   where each ball is and the last swing, so
+//                                    friends' phones can replay shots and show the golfer there
 //
 // No device is "in charge" of the match. Each one rebuilds it from the seed and the scores with
 // the same pure rules as pass-the-phone (game/match.js), so all phones always agree on the
@@ -84,6 +87,14 @@ export function createRoomApi(backend, me) {
       return code;
     },
 
+    setLook(code, look) {
+      return backend.update(`${roomPath(code)}/players/${me}`, { look });
+    },
+
+    setLive(code, holeNo, patch) {
+      return backend.update(`${roomPath(code)}/live/${holeNo}/${me}`, patch);
+    },
+
     subscribe(code, cb) {
       return backend.subscribe(roomPath(code), cb);
     },
@@ -106,7 +117,7 @@ export function createRoomApi(backend, me) {
         .sort((a, b) => a[1].joinedAt - b[1].joinedAt)
         .map(([id]) => id);
       if (order.length < 2) throw new Error('You need at least 2 players.');
-      await backend.update(roomPath(code), { status: 'playing', order, holeNo: 0, scores: null, seed: randomSeed() });
+      await backend.update(roomPath(code), { status: 'playing', order, holeNo: 0, scores: null, live: null, seed: randomSeed() });
     },
 
     submitScore(code, holeNo, strokes, title) {
@@ -127,11 +138,11 @@ export function createRoomApi(backend, me) {
     async rematch(code, room) {
       const order = (room.order ?? []).filter((id) => room.players?.[id]?.online !== false);
       if (order.length < 2) throw new Error('Not enough players still here for a rematch.');
-      await backend.update(roomPath(code), { status: 'playing', order, holeNo: 0, scores: null, seed: randomSeed() });
+      await backend.update(roomPath(code), { status: 'playing', order, holeNo: 0, scores: null, live: null, seed: randomSeed() });
     },
 
     async backToLobby(code) {
-      await backend.update(roomPath(code), { status: 'lobby', holeNo: 0, scores: null });
+      await backend.update(roomPath(code), { status: 'lobby', holeNo: 0, scores: null, live: null });
     },
   };
 }
