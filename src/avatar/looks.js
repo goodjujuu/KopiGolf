@@ -79,8 +79,8 @@ export const LOCKER_SECTIONS = {
   golfer: [
     { id: 'quick', label: 'Quick picks', controls: [{ type: 'presets' }] },
     { id: 'body', label: 'Body', controls: [
-      { type: 'choice', key: 'build', label: 'Build', options: [['slim', 'Slim'], ['regular', 'Regular'], ['broad', 'Broad'], ['chubby', 'Chubby'], ['heavy', 'Heavy']] },
-      { type: 'choice', key: 'height', label: 'Height', options: [['short', 'Short'], ['medium', 'Medium'], ['tall', 'Tall']] },
+      { type: 'choice', key: 'build', label: 'Build', options: [['slim', 'Slim'], ['regular', 'Regular'], ['broad', 'Broad'], ['chubby', 'Chubby'], ['heavy', 'Heavy'], ['muscular', 'Muscular']] },
+      { type: 'choice', key: 'height', label: 'Height', options: [['short', 'Short'], ['medium', 'Medium'], ['tall', 'Tall'], ['xtall', 'Very tall']] },
       { type: 'colour', key: 'skin', label: 'Skin tone', palette: SKIN_TONES },
       { type: 'choice', key: 'tattoos', label: 'Tattoos', options: [['none', 'None'], ['arms', 'Forearms'], ['inked', 'Arms + neck']] },
     ] },
@@ -93,7 +93,7 @@ export const LOCKER_SECTIONS = {
       { type: 'choice', key: 'cheeks', label: 'Cheeks', options: [['none', 'Plain'], ['rosy', 'Rosy'], ['freckles', 'Freckles']] },
     ] },
     { id: 'hair', label: 'Hair', zoom: 'head', controls: [
-      { type: 'choice', key: 'hair', label: 'Style', options: [['bald', 'Bald'], ['buzz', 'Buzz'], ['short', 'Short'], ['sidepart', 'Side part'], ['spiky', 'Spiky'], ['mohawk', 'Mohawk'], ['afro', 'Afro'], ['bun', 'Bun'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['bob', 'Bob'], ['messy', 'Messy']] },
+      { type: 'choice', key: 'hair', label: 'Style', options: [['bald', 'Bald'], ['buzz', 'Buzz'], ['short', 'Short'], ['sidepart', 'Side part'], ['spiky', 'Spiky'], ['mohawk', 'Mohawk'], ['afro', 'Afro'], ['bun', 'Bun'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['bob', 'Bob'], ['messy', 'Messy'], ['pompadour', 'Pompadour']] },
       { type: 'colour', key: 'hairColour', label: 'Hair colour', palette: HAIR_COLOURS },
       { type: 'choice', key: 'facialHair', label: 'Facial hair', options: [['none', 'None'], ['stubble', 'Stubble'], ['moustache', 'Moustache'], ['goatee', 'Goatee'], ['beard', 'Full beard']] },
     ] },
@@ -234,6 +234,45 @@ export const GOLFER_PRESETS = [
       top: 'polo', topColour: '#7a4fd1', topAccent: '#f2c84b',
       bottoms: 'trousers', bottomsColour: '#22262c', socksColour: '#22262c', bottomsPattern: 'tartan', bottomsAccent: '#7a4fd1',
       shoesColour: '#22262c', soleColour: '#ffffff', gloves: 'both', glovesColour: '#22262c',
+    },
+  },
+  {
+    id: 'eyas', name: 'Eyas', blurb: 'Skinny, bald and a proper moustache',
+    look: {
+      build: 'slim', height: 'medium', skin: '#d0915f', tattoos: 'none',
+      eyes: 'almond', eyeColour: '#3b2618', brows: 'thick', nose: 'long', mouth: 'smile', cheeks: 'none',
+      hair: 'bald', hairColour: '#1c1712', facialHair: 'moustache',
+      hat: 'none', hatColour: '#ffffff', glasses: 'aviators', glassesColour: '#d9a93a', lensColour: '#1a2230',
+      top: 'polo', topColour: '#ffffff', topAccent: '#2f9e6a',
+      bottoms: 'trousers', bottomsColour: '#8a929c', socksColour: '#ffffff',
+      shoesStyle: 'loafer', shoesColour: '#7a5236', shoesAccent: '#f2c84b', soleColour: '#22262c',
+      gloves: 'left', glovesColour: '#ffffff', wrist: 'watch', wristColour: '#d9a93a',
+    },
+  },
+  {
+    id: 'faly', name: 'Faly', blurb: 'Lanky, sky-high, never without his chain',
+    look: {
+      build: 'slim', height: 'xtall', skin: '#40241a', tattoos: 'none',
+      eyes: 'happy', eyeColour: '#1c1712', brows: 'straight', nose: 'wide', mouth: 'grin', cheeks: 'none',
+      hair: 'buzz', hairColour: '#1c1712', facialHair: 'goatee',
+      hat: 'none', hatColour: '#22262c', glasses: 'none', glassesColour: '#22262c',
+      top: 'tee', topColour: '#22262c', topAccent: '#f2c84b',
+      bottoms: 'joggers', bottomsColour: '#22262c', bottomsAccent: '#f2c84b', socksColour: '#ffffff',
+      shoesStyle: 'hightop', shoesColour: '#ffffff', shoesAccent: '#f2c84b', soleColour: '#22262c',
+      gloves: 'left', glovesColour: '#22262c', neck: 'chain', neckColour: '#d9a93a',
+    },
+  },
+  {
+    id: 'weixiong', name: 'WeiXiong', blurb: 'Built like a wall, hair like a legend',
+    look: {
+      build: 'muscular', height: 'tall', skin: '#efc095', tattoos: 'none',
+      eyes: 'almond', eyeColour: '#1c1712', brows: 'determined', nose: 'button', mouth: 'smirk', cheeks: 'none',
+      hair: 'pompadour', hairColour: '#1c1712', facialHair: 'none',
+      hat: 'none', hatColour: '#ffffff', glasses: 'none', glassesColour: '#22262c',
+      top: 'tank', topColour: '#e04848', topAccent: '#ffffff',
+      bottoms: 'shorts', bottomsColour: '#22262c', socksColour: '#ffffff', socksStyle: 'ankle',
+      shoesStyle: 'classic', shoesColour: '#ffffff', shoesAccent: '#e04848', soleColour: '#22262c',
+      gloves: 'both', glovesColour: '#22262c', glovesAccent: '#e04848', wrist: 'sweatband', wristColour: '#e04848',
     },
   },
 ];

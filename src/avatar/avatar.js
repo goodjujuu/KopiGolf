@@ -15,9 +15,13 @@ const BUILDS = {
   broad: { torso: 0.16, limb: 1.15, depth: 0.8, belly: 0 },
   chubby: { torso: 0.175, limb: 1.22, depth: 0.9, belly: 0.75 },
   heavy: { torso: 0.2, limb: 1.4, depth: 0.98, belly: 1 },
+  muscular: { torso: 0.165, limb: 1.38, depth: 0.82, belly: 0, muscles: true },
 };
 const INK = '#2c3553'; // tattoo ink
-const HEIGHTS = { short: { leg: 0.22, torso: 0.13 }, medium: { leg: 0.28, torso: 0.16 }, tall: { leg: 0.34, torso: 0.19 } };
+const HEIGHTS = {
+  short: { leg: 0.22, torso: 0.13 }, medium: { leg: 0.28, torso: 0.16 },
+  tall: { leg: 0.34, torso: 0.19 }, xtall: { leg: 0.43, torso: 0.23 },
+};
 const HEAD_R = 0.17;
 
 const PI = Math.PI;
@@ -105,6 +109,15 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   const torso = mesh(capsule(torsoR, torsoLen), topMat, 0, torsoCentre, 0);
   torso.scale.set(1, 1, depth);
   group.add(torso);
+  // Muscular: a broad chest and shoulders tapering to the waist.
+  if (build.muscles) {
+    for (const side of [-1, 1]) {
+      const pec = mesh(sphere(torsoR * 0.55), topMat, side * torsoR * 0.42, torsoCentre + torsoLen * 0.28, torsoR * depth * 0.42);
+      pec.scale.set(1.1, 0.8, 0.6);
+      group.add(pec);
+    }
+    torso.scale.set(1.12, 1, depth);
+  }
   // A rounder tummy for the chubby and heavy builds.
   if (build.belly) {
     const belly = mesh(sphere(torsoR * (0.78 + 0.12 * build.belly)), topMat, 0, torsoCentre - torsoLen * 0.28, torsoR * depth * 0.32 * build.belly);
@@ -197,6 +210,12 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
     if (holdingClub && side === 1) shoulder.rotation.x = -0.35;
     group.add(shoulder);
     shoulder.add(mesh(capsule(limbR * (tank ? 1 : 1.1), upperArm), tank ? skin : sleeveMat, 0, -upperArm / 2, 0));
+    if (build.muscles) { // shoulder caps and a bit of bicep
+      shoulder.add(mesh(sphere(limbR * 1.45, 14, 10), tank ? skin : sleeveMat, 0, -limbR * 0.2, 0));
+      const bicep = mesh(sphere(limbR * 1.2, 12, 10), tank ? skin : sleeveMat, 0, -upperArm * 0.55, limbR * 0.35);
+      bicep.scale.set(1, 1.3, 1);
+      shoulder.add(bicep);
+    }
     const forearmMat = longSleeves || vestLong ? sleeveMat : skin;
     shoulder.add(mesh(capsule(limbR, foreArm), forearmMat, 0, -upperArm - foreArm / 2, 0));
     if (look.tattoos && look.tattoos !== 'none' && !longSleeves && !vestLong) {
@@ -535,6 +554,23 @@ function addHair(head, look) {
       const fringe = mesh(capsule(0.028, 0.1), h, -0.03, HEAD_R * 0.62, HEAD_R * 0.72);
       fringe.rotation.set(0.5, 0, PI / 2 + 0.5);
       head.add(fringe);
+      return;
+    }
+    case 'pompadour': {
+      // Short sides with a tall, glossy quiff swept up and back from the forehead.
+      const gloss = mat(look.hairColour, { shine: 70 });
+      head.add(hairCap(r, 1.35, h, 0.35));
+      if (hatOn) return;
+      const quiff = mesh(sphere(HEAD_R * 0.62, 20, 14), gloss, 0, HEAD_R * 0.86, HEAD_R * 0.22);
+      quiff.scale.set(1.05, 0.75, 1.25);
+      quiff.rotation.x = -0.35;
+      head.add(quiff);
+      const front = mesh(sphere(HEAD_R * 0.38, 16, 12), gloss, 0, HEAD_R * 0.98, HEAD_R * 0.58);
+      front.scale.set(1.2, 0.85, 0.9);
+      head.add(front);
+      const back = mesh(sphere(HEAD_R * 0.55, 16, 12), gloss, 0, HEAD_R * 0.7, -HEAD_R * 0.28);
+      back.scale.set(1.0, 0.7, 1.1);
+      head.add(back);
       return;
     }
     case 'afro': {
