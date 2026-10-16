@@ -1,7 +1,7 @@
 # KopiGolf
 
-Low-poly 3D golf in the browser, styled after Golf Dreams. Runs on iPhone, Android and desktop.
-Low-poly 3D golf in the browser. Play a hole with a swipe swing, then challenge friends.
+Low-poly 3D golf in the browser. Runs on iPhone, Android and desktop.
+Play a hole with a swipe swing, then challenge friends.
 
 ## Modes
 Home screen, in order:
