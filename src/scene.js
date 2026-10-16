@@ -15,13 +15,14 @@ const FOLLOW_UP = 2.6;
 const CLUB_HIDE_DELAY = 0.7;
 
 export function createGameScene(canvas) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  // Logarithmic depth keeps flat course layers from flickering across kilometre-long views.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, LAYOUT.maxPixelRatio));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 800);
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 7000);
   camera.rotation.order = 'YXZ';
 
   // Lights: soft sky/ground fill plus a low sun for the long club shadow.
@@ -80,7 +81,8 @@ export function createGameScene(canvas) {
     const L = lighting;
     sky.setColors(L.skyTop, L.skyHorizon);
     scene.background = new THREE.Color(L.skyHorizon);
-    scene.fog = new THREE.Fog(L.skyHorizon, L.fogNear, L.fogFar);
+    const fogScale = world?.fogScale ?? { near: 1, far: 1 };
+    scene.fog = new THREE.Fog(L.skyHorizon, L.fogNear * fogScale.near, L.fogFar * fogScale.far);
     hemi.color.setHex(L.hemiSky);
     hemi.groundColor.setHex(L.hemiGround);
     hemi.intensity = L.hemiIntensity;
@@ -89,6 +91,7 @@ export function createGameScene(canvas) {
     stars.visible = L.stars;
     ball.setGlow(L.ballGlow);
     world?.setWaterGlow(L.waterGlow);
+    world?.setNightGlow(L.windowGlow);
   }
 
   // Set up for the next shot: ball at its lie, club addressing it, camera behind.
@@ -158,7 +161,8 @@ export function createGameScene(canvas) {
 
     const pin = new THREE.Vector3(hole.pin[0], 0.5, hole.pin[2]);
     lookPose.pos.copy(lie).lerp(pin, LAYOUT.lookAheadFraction);
-    lookPose.pos.y = Math.max(lookPose.pos.y, LAYOUT.lookAheadHeight);
+    // Higher up on long holes so the whole approach fits in view.
+    lookPose.pos.y = Math.max(lookPose.pos.y, LAYOUT.lookAheadHeight, lie.distanceTo(pin) * 0.09);
     tmpMatrix.lookAt(lookPose.pos, pin, WORLD_UP);
     lookPose.quat.setFromRotationMatrix(tmpMatrix);
   }
@@ -186,7 +190,7 @@ export function createGameScene(canvas) {
       tmpMatrix.lookAt(followPose.pos, ball.mesh.position, WORLD_UP);
       followPose.quat.setFromRotationMatrix(tmpMatrix);
       target = followPose;
-      rate = 3;
+      rate = 5;
     } else {
       target = lookAhead ? lookPose : shotPose;
     }
@@ -213,7 +217,7 @@ export function createGameScene(canvas) {
       if (clubHideTimer <= 0) club.root.visible = false;
     }
 
-    world?.update(t);
+    world?.update(t, camera.position);
     ball.update(t);
     club.update(t, dt);
 
@@ -321,7 +325,7 @@ function makeStars() {
     const theta = Math.random() * Math.PI * 2;
     const y = 0.12 + Math.random() * 0.88; // keep them above the horizon haze
     const r = Math.sqrt(1 - y * y);
-    positions.set([Math.cos(theta) * r * 550, y * 550, Math.sin(theta) * r * 550], i * 3);
+    positions.set([Math.cos(theta) * r * 5000, y * 5000, Math.sin(theta) * r * 5000], i * 3);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -335,7 +339,7 @@ function makeStars() {
 // A big inverted sphere with a vertical gradient. It follows the camera and ignores fog, so the
 // fogged sea melts into the horizon colour without a visible seam.
 function makeSkyDome() {
-  const radius = 600;
+  const radius = 5500;
   const geo = new THREE.SphereGeometry(radius, 32, 16);
   const colors = new Float32Array(geo.attributes.position.count * 3);
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));

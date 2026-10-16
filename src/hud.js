@@ -1,11 +1,12 @@
 import { METRES_TO_YARDS, MS_TO_MPH, THEMES, CLUBS, CLUB_ORDER } from './config.js';
 import { holeLength, holeAimYaw } from './courses/catalog.js';
 import { hillFootprint } from './physics/terrain.js';
+import { BIOMES } from './courses/biomes.js';
 
 // DOM overlay: hole badge, buttons, power meter, club chip, shot feedback, result card and the
 // overhead map. It reads the session and writes intents back to it; it never touches the 3D scene.
 
-export function createHUD(session, { onPlayAgain, onSelectClub, onRestart, onHome }) {
+export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRestart, onHome }) {
   const el = (id) => document.getElementById(id);
   const ui = {
     num: el('hole-num'),
@@ -46,6 +47,7 @@ export function createHUD(session, { onPlayAgain, onSelectClub, onRestart, onHom
     resultTitle: el('result-title'),
     resultLine: el('result-line'),
     againBtn: el('btn-again'),
+    nextBtn: el('btn-next'),
   };
 
   const tap = () => { try { navigator.vibrate?.(8); } catch { /* not supported on iPhone */ } };
@@ -55,6 +57,7 @@ export function createHUD(session, { onPlayAgain, onSelectClub, onRestart, onHom
   ui.closeBtn.addEventListener('click', () => session.set({ mapOpen: false }));
   ui.sheet.addEventListener('click', (e) => { if (e.target === ui.sheet) session.set({ mapOpen: false }); });
   ui.againBtn.addEventListener('click', () => { tap(); onPlayAgain(); });
+  ui.nextBtn.addEventListener('click', () => { tap(); onNextHole(); });
   ui.homeBtn.addEventListener('click', () => { tap(); onHome(); });
 
   // ----- Restart: with shots on the card, the first tap asks "Restart?" and the second confirms -----
@@ -115,11 +118,11 @@ export function createHUD(session, { onPlayAgain, onSelectClub, onRestart, onHom
     if (s.hole) {
       const holeYards = Math.round(holeLength(s.hole) * METRES_TO_YARDS);
       ui.num.textContent = s.hole.practice ? 'P' : s.hole.number;
-      ui.name.textContent = s.hole.name;
+      ui.name.textContent = s.hole.city ?? s.hole.name;
       ui.meta.textContent = `Par ${s.hole.par} · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
       ui.sr.textContent = `${s.hole.practice ? 'Practice' : `Hole ${s.hole.number}`}, ${s.hole.name}, par ${s.hole.par}, ${holeYards} yards, ${s.strokes} strokes so far.`;
       ui.mapKicker.textContent = `Hole ${s.hole.number} · Par ${s.hole.par}`;
-      ui.mapTitle.textContent = s.hole.name;
+      ui.mapTitle.textContent = s.hole.city ? `${s.hole.city} · ${s.hole.name}` : s.hole.name;
       ui.mapDist.textContent = `${yardsToPin} yd to the pin`;
     }
     ui.hud.hidden = s.screen !== 'play';
@@ -177,10 +180,12 @@ export function createHUD(session, { onPlayAgain, onSelectClub, onRestart, onHom
       lastResult = s.result;
       ui.result.hidden = !s.result;
       if (s.result) {
-        ui.resultKicker.textContent = s.hole ? `Hole ${s.hole.number} · ${s.hole.name}` : '';
+        ui.resultKicker.textContent = s.hole ? (s.hole.practice ? `Practice · ${s.hole.name}` : `Hole ${s.hole.number} · ${s.hole.city}`) : '';
+        const hasNext = s.mode === 'tour' && s.tourIndex + 1 < s.tourCount;
+        ui.nextBtn.hidden = !hasNext;
         ui.resultTitle.textContent = s.result.title;
         ui.resultLine.textContent = `${s.result.strokes} ${s.result.strokes === 1 ? 'stroke' : 'strokes'} on a par ${s.result.par}`;
-        ui.againBtn.focus({ preventScroll: true });
+        (hasNext ? ui.nextBtn : ui.againBtn).focus({ preventScroll: true });
       }
     }
   });
@@ -247,7 +252,7 @@ const CLUB_ART = {
 };
 
 // Overhead map drawn from the same hole data as the 3D world, rotated so the tee is at the
-// bottom and the pin is at the top.
+// bottom and the pin is at the top. Handles the practice island and World Tour courses.
 function drawMap(canvas, hole, ballAt) {
   if (!hole) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -258,44 +263,65 @@ function drawMap(canvas, hole, ballAt) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const theme = THEMES[hole.theme];
+  const theme = hole.island ? THEMES[hole.theme] : { ...BIOMES[hole.biome], foliageAlt: 0x3f6a2e, sand: BIOMES[hole.biome].beach, flag: 0xf2483f };
   const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
 
-  // Local frame: u = right of the target line, v = distance down the target line.
+  // Local frame: u = right of the tee–pin line, v = distance down it.
   const yaw = holeAimYaw(hole);
   const fwd = { x: -Math.sin(yaw), z: -Math.cos(yaw) };
   const right = { x: Math.cos(yaw), z: -Math.sin(yaw) };
   const [tx, , tz] = hole.tee;
   const toLocal = (x, z) => ({ u: (x - tx) * right.x + (z - tz) * right.z, v: (x - tx) * fwd.x + (z - tz) * fwd.z });
 
-  const len = holeLength(hole);
-  const vMin = -14;
-  const vMax = len + 26;
-  const scale = cssH / (vMax - vMin);
+  // Fit the whole hole: tee, pin and fairway corners, with a margin.
+  const pts = hole.path ? hole.path.map(([x, z]) => toLocal(x, z)) : [toLocal(tx, tz), toLocal(hole.pin[0], hole.pin[2])];
+  const margin = hole.path ? 40 : 14;
+  const vMin = Math.min(...pts.map((p) => p.v)) - margin;
+  const vMax = Math.max(...pts.map((p) => p.v)) + margin + (hole.path ? 10 : 12);
+  const uSpan = Math.max(...pts.map((p) => Math.abs(p.u))) + margin;
+  const scale = Math.min(cssH / (vMax - vMin), cssW / (2 * uSpan));
   const P = (x, z) => {
     const { u, v } = toLocal(x, z);
-    return { x: cssW / 2 + u * scale, y: cssH - (v - vMin) * scale };
+    return { x: cssW / 2 + u * scale, y: cssH - (v - vMin) * scale - (cssH - (vMax - vMin) * scale) / 2 };
   };
 
-  ctx.fillStyle = hex(theme.water);
-  ctx.fillRect(0, 0, cssW, cssH);
-
-  const ic = P(hole.island.center[0], hole.island.center[2]);
-  circle(ctx, ic.x, ic.y, (hole.island.radius + 6) * scale, hex(theme.sand));
-  circle(ctx, ic.x, ic.y, hole.island.radius * scale, hex(theme.rough));
-
+  // Ground
+  if (hole.island) {
+    ctx.fillStyle = hex(theme.water);
+    ctx.fillRect(0, 0, cssW, cssH);
+    const ic = P(hole.island.center[0], hole.island.center[2]);
+    circle(ctx, ic.x, ic.y, (hole.island.radius + 6) * scale, hex(theme.sand));
+    circle(ctx, ic.x, ic.y, hole.island.radius * scale, hex(theme.rough));
+  } else {
+    ctx.fillStyle = hex(theme.rough);
+    ctx.fillRect(0, 0, cssW, cssH);
+    if (hole.sea) drawSea(ctx, hole.sea, P, cssW, cssH, hex(theme.beach), hex(theme.water));
+  }
   for (const [hx, hz, r] of hole.hills) {
     const p = P(hx, hz);
     circle(ctx, p.x, p.y, hillFootprint(r) * scale, hex(theme.hill));
   }
 
   // Fairway
-  const w = hole.fairwayWidth * scale;
-  const top = cssH - (len + 6 - vMin) * scale;
-  const bottom = cssH - (-6 - vMin) * scale;
-  ctx.fillStyle = hex(theme.fairway);
-  roundRect(ctx, cssW / 2 - w / 2, top, w, bottom - top, w / 2);
-  ctx.fill();
+  ctx.strokeStyle = hex(theme.fairway);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  if (hole.fairway?.points) {
+    ctx.lineWidth = hole.fairway.width * scale;
+    hole.fairway.points.forEach(([x, z], i) => { const p = P(x, z); if (i) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); });
+  } else {
+    ctx.lineWidth = hole.fairwayWidth * scale;
+    const a = P(tx - fwd.x * 6, tz - fwd.z * 6);
+    const b = P(hole.pin[0] + fwd.x * 6, hole.pin[2] + fwd.z * 6);
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+  }
+  ctx.stroke();
+
+  // Hazards
+  for (const pond of hole.ponds ?? []) drawEllipse(ctx, pond, P, scale, yaw, hex(theme.water));
+  for (const b of hole.bunkers ?? []) drawEllipse(ctx, b, P, scale, yaw, hex(theme.bunker));
 
   // Green
   const pin = P(hole.pin[0], hole.pin[2]);
@@ -304,12 +330,18 @@ function drawMap(canvas, hole, ballAt) {
   ctx.ellipse(pin.x, pin.y, hole.greenRadius * 1.4 * scale, hole.greenRadius * scale, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  for (const [px, pz] of hole.palms) {
-    const p = P(px, pz);
-    circle(ctx, p.x, p.y, 3.2, hex(theme.foliageAlt));
+  // Trees (a sample of them, as dots)
+  const trees = hole.palms ? hole.palms.map(([x, z]) => [x, z]) : (hole.trees ?? []).map(([, x, z]) => [x, z]);
+  ctx.fillStyle = 'rgba(30, 60, 30, 0.55)';
+  for (const [x, z] of trees) {
+    const p = P(x, z);
+    if (p.x < -4 || p.y < -4 || p.x > cssW + 4 || p.y > cssH + 4) continue;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(2, 3 * scale), 0, Math.PI * 2);
+    ctx.fill();
   }
 
-  // Target line
+  // Line from the ball to the pin
   const tee = P(tx, tz);
   const from = ballAt ? P(ballAt.x, ballAt.z) : tee;
   ctx.setLineDash([4, 5]);
@@ -325,9 +357,8 @@ function drawMap(canvas, hole, ballAt) {
   circle(ctx, tee.x, tee.y, 6, '#163a2a');
   circle(ctx, tee.x, tee.y, 4, '#ffffff');
   if (ballAt && Math.hypot(ballAt.x - tx, ballAt.z - tz) > 1) {
-    const b = P(ballAt.x, ballAt.z);
-    circle(ctx, b.x, b.y, 6, '#163a2a');
-    circle(ctx, b.x, b.y, 4, '#ffd84a');
+    circle(ctx, from.x, from.y, 6, '#163a2a');
+    circle(ctx, from.x, from.y, 4, '#ffd84a');
   }
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2;
@@ -344,19 +375,41 @@ function drawMap(canvas, hole, ballAt) {
   ctx.fill();
 }
 
+// Rotated ellipse hazard ({ x, z, rx, rz, yaw }) in map space.
+function drawEllipse(ctx, e, P, scale, mapYaw, fill) {
+  const c = P(e.x, e.z);
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.ellipse(c.x, c.y, e.rx * scale, e.rz * scale, -(e.yaw - mapYaw), 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Fill the sea side of the coastline (with a strip of beach) across the whole map.
+function drawSea(ctx, sea, P, w, h, beachColour, waterColour) {
+  const band = (offset, colour) => {
+    const along = { x: -sea.nz, z: sea.nx };
+    const ox = sea.x + sea.nx * offset;
+    const oz = sea.z + sea.nz * offset;
+    const far = 6000;
+    const corners = [
+      P(ox - along.x * far, oz - along.z * far),
+      P(ox + along.x * far, oz + along.z * far),
+      P(ox + along.x * far + sea.nx * far, oz + along.z * far + sea.nz * far),
+      P(ox - along.x * far + sea.nx * far, oz - along.z * far + sea.nz * far),
+    ];
+    ctx.fillStyle = colour;
+    ctx.beginPath();
+    corners.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.closePath();
+    ctx.fill();
+  };
+  band(-sea.beach, beachColour);
+  band(0, waterColour);
+}
+
 function circle(ctx, x, y, r, fill) {
   ctx.fillStyle = fill;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
 }

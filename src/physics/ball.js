@@ -4,10 +4,10 @@ import { surfaceAt, groundHeight } from './course.js';
 // Ball flight, bounce and roll. Plain numbers, no Three.js, so it can be tested on its own.
 //
 // States: 'rest' → 'air' → (bounces) → 'roll' → 'rest'   or   → 'water' / 'holed'
-// stepBody() returns an event when something happens: 'land', 'rest', 'water', 'holed'.
+// stepBody() returns an event when something happens: 'land', 'rest', 'water', 'oob', 'holed'.
 
 const SUBSTEPS = 4;
-const TERMINAL_EVENTS = new Set(['rest', 'water', 'holed']);
+const TERMINAL_EVENTS = new Set(['rest', 'water', 'holed', 'oob']);
 
 export function createBallBody() {
   return {
@@ -81,6 +81,7 @@ function substep(b, hole, dt) {
     b.surface = s;
     b.p.y = ground;
     if (s === 'water') { b.state = 'water'; return 'water'; }
+    if (s === 'oob') { b.state = 'water'; return 'oob'; }
     if (s === 'green' && distToCup(b, hole) < PHYSICS.cupRadius) return holeOut(b, hole);
 
     const surf = PHYSICS.surfaces[s];
@@ -102,6 +103,7 @@ function substep(b, hole, dt) {
   const s = surfaceAt(hole, b.p.x, b.p.z);
   b.surface = s;
   if (s === 'water') { b.state = 'water'; b.p.y = groundHeight(hole, b.p.x, b.p.z, s); return 'water'; }
+  if (s === 'oob') { b.state = 'water'; return 'oob'; }
   const speed = Math.hypot(b.v.x, b.v.z);
   if (s === 'green' && distToCup(b, hole) < PHYSICS.cupRadius && speed < PHYSICS.captureSpeed) {
     return holeOut(b, hole);

@@ -120,7 +120,10 @@
       <p class="result-kicker" id="result-kicker">Hole 1</p>
       <h2 class="result-title" id="result-title">Par</h2>
       <p class="result-line" id="result-line"></p>
-      <button class="primary-btn" id="btn-again" type="button">Play again</button>
+      <div class="result-actions">
+        <button class="primary-btn" id="btn-next" type="button" hidden>Next hole</button>
+        <button class="secondary-btn" id="btn-again" type="button">Play again</button>
+      </div>
     </div>
   </div>
 
@@ -132,6 +135,14 @@
       </header>
 
       <div class="home-cards">
+      <button class="home-card home-link home-tour" id="btn-open-tour" type="button">
+        <span class="home-card-head">
+          <span class="home-link-title">World Tour</span>
+          <span class="home-link-sub">36 holes in 36 cities, from Singapore to Cape Town</span>
+        </span>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+
       <div class="home-card">
         <div class="home-card-head">
           <h2>Practice</h2>
@@ -197,6 +208,36 @@
       <div class="locker-chips" id="locker-chips"></div>
       <div class="locker-controls" id="locker-controls"></div>
       <button class="text-btn" id="btn-locker-reset" type="button">Reset to default look</button>
+    </div>
+  </section>
+
+  <section class="tour" id="tour" hidden aria-labelledby="tour-title">
+    <header class="locker-top">
+      <button class="hud-btn" id="btn-tour-close" type="button" aria-label="Back to home">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 class="locker-title" id="tour-title">World Tour</h2>
+    </header>
+    <div class="tour-panel">
+      <div class="tour-conditions">
+        <fieldset class="seg-field">
+          <legend>Time of day</legend>
+          <div class="seg">
+            <input type="radio" name="tourTimeOfDay" id="tour-tod-day" value="day"><label for="tour-tod-day">Day</label>
+            <input type="radio" name="tourTimeOfDay" id="tour-tod-sunset" value="sunset"><label for="tour-tod-sunset">Sunset</label>
+            <input type="radio" name="tourTimeOfDay" id="tour-tod-night" value="night"><label for="tour-tod-night">Night</label>
+          </div>
+        </fieldset>
+        <fieldset class="seg-field">
+          <legend>Wind</legend>
+          <div class="seg">
+            <input type="radio" name="tourWind" id="tour-wind-calm" value="calm"><label for="tour-wind-calm">Calm</label>
+            <input type="radio" name="tourWind" id="tour-wind-breezy" value="breezy"><label for="tour-wind-breezy">Breezy</label>
+            <input type="radio" name="tourWind" id="tour-wind-windy" value="windy"><label for="tour-wind-windy">Windy</label>
+          </div>
+        </fieldset>
+      </div>
+      <div class="tour-list" id="tour-list"></div>
     </div>
   </section>
 

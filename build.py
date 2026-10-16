@@ -19,8 +19,10 @@ THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
 MODULES = [
     "src/config.js",
     "src/state.js",
-    "src/courses/pack01.js",
+    "src/courses/biomes.js",
+    "src/courses/generate.js",
     "src/courses/practice.js",
+    "src/courses/tour.js",
     "src/courses/catalog.js",
     "src/physics/terrain.js",
     "src/physics/course.js",
@@ -29,6 +31,10 @@ MODULES = [
     "src/avatar/avatar.js",
     "src/world/materials.js",
     "src/world/palm.js",
+    "src/world/trees.js",
+    "src/world/skyline.js",
+    "src/world/landmarks.js",
+    "src/world/landscape.js",
     "src/world/builder.js",
     "src/entities/ball.js",
     "src/entities/club.js",
@@ -38,22 +44,49 @@ MODULES = [
     "src/hud.js",
     "src/ui/home.js",
     "src/ui/locker.js",
+    "src/ui/tour.js",
     "src/main.js",
 ]
 
-LOCAL_IMPORT = re.compile(r"^import\s.+\sfrom\s+['\"](\.{1,2}/[^'\"]+|three)['\"];\s*$", re.M)
-EXPORT = re.compile(r"^export\s+(?=(const|let|function|class)\b)", re.M)
+THREE_IMPORT = re.compile(r"^import \* as THREE from ['\"]three['\"];\s*$", re.M)
+LOCAL_IMPORT = re.compile(r"^import \{([^}]*)\} from ['\"](\.{1,2}/[^'\"]+)['\"];\s*$", re.M)
+EXPORT = re.compile(r"^export\s+(const|let|function|class)\s+([A-Za-z_$][\w$]*)", re.M)
+
+
+def module_var(rel: str) -> str:
+    return "__m_" + re.sub(r"[^A-Za-z0-9]", "_", rel[len("src/"):-len(".js")])
 
 
 def bundle_js() -> str:
+    """Each module becomes its own scope (an IIFE) that returns its exports, so helper names
+    like PI or DEG in different files never collide."""
     parts = [f"import * as THREE from '{THREE_URL}';"]
     for rel in MODULES:
         src = (ROOT / rel).read_text()
-        src = LOCAL_IMPORT.sub("", src)
-        src = EXPORT.sub("", src)
+        src = THREE_IMPORT.sub("", src)
+
+        def resolve(match):
+            names = match.group(1)
+            target = (pathlib.PurePosixPath(rel).parent / match.group(2)).as_posix()
+            target = str(pathlib.PurePosixPath(*[p for p in pathlib.PurePosixPath(target).parts]))
+            # normalise ../
+            stack = []
+            for piece in target.split("/"):
+                if piece == "..":
+                    stack.pop()
+                elif piece != ".":
+                    stack.append(piece)
+            target = "/".join(stack)
+            if target not in MODULES or MODULES.index(target) > MODULES.index(rel):
+                sys.exit(f"build: {rel} imports {target}, which is not in MODULES or is listed after it")
+            return f"const {{{names}}} = {module_var(target)};"
+
+        src = LOCAL_IMPORT.sub(resolve, src)
+        exports = [m.group(2) for m in EXPORT.finditer(src)]
+        src = EXPORT.sub(lambda m: f"{m.group(1)} {m.group(2)}", src)
         if re.search(r"^\s*(import|export)\s", src, re.M):
             sys.exit(f"build: unhandled import/export left in {rel}")
-        parts.append(f"// ---- {rel} ----\n{src.strip()}")
+        parts.append(f"// ---- {rel} ----\nconst {module_var(rel)} = (() => {{\n{src.strip()}\nreturn {{ {', '.join(exports)} }};\n}})();")
     return "\n\n".join(parts)
 
 

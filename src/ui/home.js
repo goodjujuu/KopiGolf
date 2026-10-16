@@ -13,6 +13,10 @@ export function loadSavedSettings() {
   return { timeOfDay: 'day', wind: 'calm' };
 }
 
+export function saveSettings(settings) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* storage blocked */ }
+}
+
 export function createHome(session, { onStartPractice }) {
   const home = document.getElementById('home');
   const startBtn = document.getElementById('btn-practice');
@@ -30,12 +34,17 @@ export function createHome(session, { onStartPractice }) {
   home.addEventListener('change', () => {
     const settings = read();
     session.set({ settings });
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* storage blocked */ }
+    saveSettings(settings);
   });
 
   startBtn.addEventListener('click', () => onStartPractice(read()));
 
   session.subscribe((s) => {
     home.hidden = s.screen !== 'home';
+    // Stay in step with changes made on the World Tour screen.
+    const tod = home.querySelector(`input[name="timeOfDay"][value="${s.settings.timeOfDay}"]`);
+    const wind = home.querySelector(`input[name="wind"][value="${s.settings.wind}"]`);
+    if (tod) tod.checked = true;
+    if (wind) wind.checked = true;
   });
 }

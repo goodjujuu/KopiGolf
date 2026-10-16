@@ -5,11 +5,13 @@ import { lambert } from './materials.js';
 import { makePalm } from './palm.js';
 import { terrainHeight, HILL_SPREAD, HILL_SINK } from '../physics/terrain.js';
 import { SAND_RIM, GREEN_STRETCH } from '../physics/course.js';
+import { buildCourse } from './landscape.js';
 
 // Turns a hole's data into a low-poly 3D world built from primitives, so the first 100+ holes
 // need no 3D modelling. Hand-made models can replace individual pieces later.
 
 export function buildWorld(hole) {
+  if (!hole.island) return buildCourse(hole); // World Tour courses
   const theme = THEMES[hole.theme];
   const group = new THREE.Group();
   group.name = `world:${hole.id}`;
@@ -37,6 +39,8 @@ export function buildWorld(hole) {
     theme,
     update(time) { for (const a of animated) a.update(time); },
     setWaterGlow(v) { water.material.emissiveIntensity = v; },
+    setNightGlow() {},
+    fogScale: { near: 1, far: 1 },
     dispose() { group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); }); },
   };
 }

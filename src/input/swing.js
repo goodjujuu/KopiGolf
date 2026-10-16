@@ -28,7 +28,7 @@ export function createSwingInput(surface, handlers) {
 
   surface.addEventListener('pointerdown', (e) => {
     if (mode !== 'none' || e.button > 0) return;
-    if (e.target.closest('button, .map-sheet, .result, .home, .locker')) return;
+    if (e.target.closest('button, .map-sheet, .result, .home, .locker, .tour')) return;
     if (!handlers.canStart()) return;
     pointerId = e.pointerId;
     mode = 'pending';

@@ -19,7 +19,7 @@ export const LAYOUT = {
 };
 
 // Ground layers sit slightly above each other so they never flicker.
-export const SURFACE = { rough: 0, fairway: 0.03, green: 0.06 };
+export const SURFACE = { rough: 0, fairway: 0.03, green: 0.06, bunker: 0.045 };
 
 // Course art palettes. 100+ holes reuse a handful of themes to keep the look cohesive.
 export const THEMES = {
@@ -58,21 +58,21 @@ export const LIGHTING = {
     skyTop: 0x5fc4f2, skyHorizon: 0xc9f0fb, fogNear: 80, fogFar: 340,
     hemiSky: 0xffffff, hemiGround: 0x5d8f3a, hemiIntensity: 1.4,
     sunColor: 0xfff1dc, sunIntensity: 2.2, sunOffset: [5, 6, -7],
-    waterGlow: 0.25, ballGlow: 0, stars: false,
+    waterGlow: 0.25, ballGlow: 0, stars: false, windowGlow: 0,
   },
   sunset: {
     label: 'Sunset',
     skyTop: 0x8fa6d8, skyHorizon: 0xffd2a1, fogNear: 70, fogFar: 320,
     hemiSky: 0xffe2c4, hemiGround: 0x4f6b3a, hemiIntensity: 1.1,
     sunColor: 0xffb074, sunIntensity: 2.0, sunOffset: [6, 2.6, -7],
-    waterGlow: 0.18, ballGlow: 0.05, stars: false,
+    waterGlow: 0.18, ballGlow: 0.05, stars: false, windowGlow: 0.35,
   },
   night: {
     label: 'Night',
     skyTop: 0x071331, skyHorizon: 0x223a66, fogNear: 50, fogFar: 260,
     hemiSky: 0x8fa8ff, hemiGround: 0x1b2a1a, hemiIntensity: 0.55,
     sunColor: 0xbcd0ff, sunIntensity: 0.95, sunOffset: [-4, 7, -6],
-    waterGlow: 0.06, ballGlow: 0.45, stars: true,
+    waterGlow: 0.06, ballGlow: 0.45, stars: true, windowGlow: 1,
   },
 };
 export const DEG = Math.PI / 180;
@@ -130,6 +130,9 @@ export const PHYSICS = {
     fairway: { bounce: 0.3, keep: 0.6, roll: 0.32 },
     rough: { bounce: 0.22, keep: 0.45, roll: 0.6 },
     sand: { bounce: 0.08, keep: 0.25, roll: 1.4 },
+    bunker: { bounce: 0.05, keep: 0.2, roll: 1.8 },
+    snow: { bounce: 0.1, keep: 0.3, roll: 1.1 },
+    oob: { bounce: 0.2, keep: 0.4, roll: 0.6 },
   },
 };
 

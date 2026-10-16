@@ -3,6 +3,12 @@
 Low-poly 3D golf in the browser, styled after Golf Dreams. Runs on iPhone, Android and desktop.
 Low-poly 3D golf in the browser. Play a hole with a swipe swing, then challenge friends.
 
+## Modes
+- **World Tour:** 36 holes in 36 cities (two par-72 rounds), each with its landmark on the skyline
+  and its own season: summer, spring blossom, autumn, snow, desert, beach, tropical, forest, alpine.
+- **Practice:** the original island par 3 (Coconut Run).
+- **Locker:** customise your golfer and clubs.
+
 ## How to play
 - **Swing:** drag down to pull the club back (further = more power), then flick up past where you started.
   A quick flick keeps full power; a slow push loses some. Flick straight up to hit straight; drifting
@@ -45,6 +51,13 @@ Friends open the link; on iPhone, Share → "Add to Home Screen" makes it full-s
     src/avatar/looks.js   every customisation option and colour palette (add new ones here)
     src/avatar/avatar.js  builds the 3D golfer from a look
     src/courses/practice.js  the practice map (Practice mode only)
+    src/courses/tour.js   the 36 World Tour specs (add a city here to add a map)
+    src/courses/generate.js  turns a spec into a full hole (seeded, so always identical)
+    src/courses/biomes.js colours, trees and rough type for each season / setting
+    src/world/landscape.js   builds a course: ground, fairway, hazards, props, sky effects
+    src/world/landmarks.js   ~30 low-poly landmarks (Eiffel Tower, Burj Khalifa, Opera House…)
+    src/world/trees.js    instanced trees per biome
+    src/world/skyline.js  city buildings with windows that light up at night
     src/config.js         every scaling number and colour palette
     src/scene.js          renderer, camera framing, lights, loop
     src/hud.js            badge, buttons, overhead map
@@ -53,9 +66,11 @@ Friends open the link; on iPhone, Share → "Add to Home Screen" makes it full-s
     src/courses/          catalog.js + pack01.js (hole data)
     build.py              optional: bundles everything into one HTML file in dist/
 
-## 100+ holes
-A hole is data (tee, pin, fairway width, green, hills, palms, theme). Add holes to a pack file;
-add packs in src/courses/catalog.js. No new 3D code needed per hole.
+## Adding maps
+Each World Tour hole is a short spec in `src/courses/tour.js`: city, par, yards, shape
+(straight / left / right / s), water (none / front / side / creek / sea-left / sea-right), biome,
+landmarks and skyline density. `generate.js` expands it into the full hole. To reach 100+ maps,
+add specs; new landmark models go in `landmarks.js`.
 
 ## Screen scaling
 - Stage is full-bleed on phones, capped at 3:4 and centred on wide screens.

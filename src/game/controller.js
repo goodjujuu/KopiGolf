@@ -1,5 +1,7 @@
 import { CLUBS, CLUB_ORDER, FULL_BACKSWING, SWING, PHYSICS, WIND_LEVELS, DEG, METRES_TO_YARDS, clamp } from '../config.js';
 import { createBallBody, placeBody, launchBody, stepBody, planShot, predictFlight } from '../physics/ball.js';
+import { nearestOnPath, pathAt, pathLength } from '../courses/generate.js';
+import { surfaceAt } from '../physics/course.js';
 
 // The rules of a hole: whose turn it is to swing, what a swing does to the ball, what happens
 // when it lands, scoring. It drives the 3D scene and the HUD but owns no drawing itself.
@@ -38,6 +40,30 @@ export function suggestClub(distanceMetres, surface) {
   const yards = distanceMetres * METRES_TO_YARDS;
   const reaching = CLUB_ORDER.map((id) => CLUBS[id]).filter((c) => c.yards && c.yards >= yards);
   return reaching.length ? reaching.reduce((a, b) => (b.yards < a.yards ? b : a)) : CLUBS.D;
+}
+
+// Where to aim from (x, z): the pin when it's in reach, otherwise a lay-up spot further down
+// the fairway (so doglegs aim around the corner, not over the trees).
+const REACH = 235;  // metres: go for the pin from closer than this
+const LAYUP = 215;  // metres: how far down the fairway to lay up
+export function aimTarget(hole, x, z) {
+  const pin = { x: hole.pin[0], z: hole.pin[2] };
+  if (!hole.path || Math.hypot(pin.x - x, pin.z - z) <= REACH) return pin;
+  const total = pathLength(hole.path);
+  const { s } = nearestOnPath(hole.path, x, z);
+  // Pull the lay-up back until the landing zone (and the roll after it) is dry.
+  const wet = (at) => {
+    for (let d = -10; d <= 35; d += 5) {
+      const p = pathAt(hole.path, Math.min(total, at + d));
+      const surf = surfaceAt(hole, p.x, p.z);
+      if (surf === 'water' || surf === 'oob') return true;
+    }
+    return false;
+  };
+  let at = Math.min(total, s + LAYUP);
+  while (at > s + 60 && wet(at)) at -= 10;
+  const p = pathAt(hole.path, at);
+  return { x: p.x, z: p.z };
 }
 
 // A fresh wind for a hole. yaw is the direction it blows TOWARD (0 = toward −z, like aim yaw).
@@ -83,10 +109,11 @@ export function createGameController({ game, session, hud }) {
   function setLie(x, z) {
     placeBody(body, hole, x, z);
     lie = { x, z };
-    baseYaw = Math.atan2(-(hole.pin[0] - x), -(hole.pin[2] - z));
+    const target = aimTarget(hole, x, z);
+    baseYaw = Math.atan2(-(target.x - x), -(target.z - z));
     aimYaw = baseYaw;
     const toPin = distanceToPin(x, z);
-    club = suggestClub(toPin, body.surface);
+    club = suggestClub(Math.hypot(target.x - x, target.z - z), body.surface);
     game.placeAtLie(body.p, aimYaw);
     game.setClubKind(club.kind);
     session.set({ club: club.id, suggestedClub: club.id, lieSurface: body.surface, toPin, ballAt: { x, z }, aimYaw });
@@ -176,9 +203,10 @@ export function createGameController({ game, session, hud }) {
     if (phase === 'flight') {
       const event = stepBody(body, hole, dt);
       game.setBallPosition(body.p);
-      if (event === 'water') {
+      if (event === 'water' || event === 'oob') {
         game.setBallVisible(false);
-        hud.toast('Splash!', 'Into the water · 1 penalty stroke');
+        if (event === 'water') hud.toast('Splash!', 'Into the water · 1 penalty stroke');
+        else hud.toast('Out of bounds', '1 penalty stroke · replay from where you hit');
         timer = PENALTY_DELAY;
         setPhase('penalty');
       } else if (event === 'holed') {
