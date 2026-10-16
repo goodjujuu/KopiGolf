@@ -4,10 +4,12 @@ Low-poly 3D golf in the browser, styled after Golf Dreams. Runs on iPhone, Andro
 Low-poly 3D golf in the browser. Play a hole with a swipe swing, then challenge friends.
 
 ## Modes
-- **World Tour:** 36 holes in 36 cities (two par-72 rounds), each with its landmark on the skyline
-  and its own season: summer, spring blossom, autumn, snow, desert, beach, tropical, forest, alpine.
-- **Practice:** the original island par 3 (Coconut Run).
+Home screen, in order:
+- **Play with friends** (the main mode): pick one of 36 city courses (two par-72 rounds), each with
+  its landmark on the skyline and its own season: summer, spring blossom, autumn, snow, desert,
+  beach, tropical, forest, alpine. Invites and KopiBucks wagers come next.
 - **Locker:** customise your golfer and clubs.
+- **Practice:** the original island par 3 (Coconut Run).
 
 ## How to play
 - **Swing:** drag down to pull the club back (further = more power), then flick up past where you started.

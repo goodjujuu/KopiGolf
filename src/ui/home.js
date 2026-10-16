@@ -41,7 +41,7 @@ export function createHome(session, { onStartPractice }) {
 
   session.subscribe((s) => {
     home.hidden = s.screen !== 'home';
-    // Stay in step with changes made on the World Tour screen.
+    // Stay in step with changes made on the Play with friends screen.
     const tod = home.querySelector(`input[name="timeOfDay"][value="${s.settings.timeOfDay}"]`);
     const wind = home.querySelector(`input[name="wind"][value="${s.settings.wind}"]`);
     if (tod) tod.checked = true;

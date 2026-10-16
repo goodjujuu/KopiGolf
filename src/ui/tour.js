@@ -2,7 +2,8 @@ import { TOUR_SPECS } from '../courses/tour.js';
 import { BIOMES } from '../courses/biomes.js';
 import { saveSettings } from './home.js';
 
-// World Tour picker: choose conditions, then tap a city to play its hole.
+// Course picker inside "Play with friends": choose conditions, then tap a city to play its hole.
+// (Invites and KopiBucks wagers will slot in here before tee-off.)
 
 const GROUPS = [
   { from: 0, to: 18, label: 'Front 18 · Asia, Oceania & the Middle East' },

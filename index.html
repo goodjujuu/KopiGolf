@@ -135,10 +135,21 @@
       </header>
 
       <div class="home-cards">
-      <button class="home-card home-link home-tour" id="btn-open-tour" type="button">
+      <button class="home-play" id="btn-open-tour" type="button">
+        <span class="home-play-text">
+          <span class="home-play-kicker">Main event</span>
+          <span class="home-play-title">Play with friends</span>
+          <span class="home-play-sub">Pick a city course, set the conditions, tee off</span>
+        </span>
+        <span class="home-play-go" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+        </span>
+      </button>
+
+      <button class="home-card home-link" id="btn-open-locker" type="button">
         <span class="home-card-head">
-          <span class="home-link-title">World Tour</span>
-          <span class="home-link-sub">36 holes in 36 cities, from Singapore to Cape Town</span>
+          <span class="home-link-title">Locker</span>
+          <span class="home-link-sub">Customise your golfer, clubs and ball</span>
         </span>
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
       </button>
@@ -165,21 +176,6 @@
           </div>
         </fieldset>
         <button class="primary-btn" id="btn-practice" type="button">Start practice</button>
-      </div>
-
-      <button class="home-card home-link" id="btn-open-locker" type="button">
-        <span class="home-card-head">
-          <span class="home-link-title">Locker</span>
-          <span class="home-link-sub">Customise your golfer, clubs and ball</span>
-        </span>
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
-
-      <div class="home-card is-soon">
-        <div class="home-card-head">
-          <h2>Play with friends</h2>
-          <p>Start or join a game and wager KopiBucks. Coming in a later update.</p>
-        </div>
       </div>
       </div>
     </div>
@@ -216,9 +212,10 @@
       <button class="hud-btn" id="btn-tour-close" type="button" aria-label="Back to home">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
       </button>
-      <h2 class="locker-title" id="tour-title">World Tour</h2>
+      <h2 class="locker-title" id="tour-title">Play with friends</h2>
     </header>
     <div class="tour-panel">
+      <p class="tour-note">Choose one of 36 city courses. Inviting friends and KopiBucks wagers arrive in the next update; until then you can play any course yourself.</p>
       <div class="tour-conditions">
         <fieldset class="seg-field">
           <legend>Time of day</legend>
