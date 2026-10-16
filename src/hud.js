@@ -124,6 +124,11 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
       ui.num.textContent = s.hole.practice ? 'P' : s.hole.number;
       ui.name.textContent = s.hole.city ?? s.hole.name;
       ui.meta.textContent = `Par ${s.hole.par} · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
+      if (s.mode === 'online' && s.online?.view) {
+        const v = s.online.view;
+        ui.num.textContent = v.match.holes[v.k].playoff ? 'SD' : v.k + 1;
+        ui.meta.textContent = `Online ${s.online.code} · Par ${s.hole.par} · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
+      }
       if (s.mode === 'match' && s.match) {
         const mh = s.match.holes[s.match.holeNo];
         const who = s.match.players[mh.players[s.match.turn]]?.name ?? '';
@@ -141,7 +146,7 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
     if (ui.cancelSwing.hidden === swinging) ui.cancelSwing.hidden = !swinging;
     if (!swinging) ui.cancelSwing.classList.remove('is-hot');
     ui.cancelSwing.classList.toggle('is-right', s.swingSide === 'right');
-    ui.restartBtn.hidden = s.mode === 'match'; // no do-overs in a match
+    ui.restartBtn.hidden = s.mode === 'match' || s.mode === 'online'; // no do-overs in a match
 
     // Wind chip: arrow shows where the wind blows relative to the way you're aiming.
     const windOn = s.wind && s.wind.speed >= 0.5;
@@ -194,8 +199,9 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
 
     if (s.result !== lastResult) {
       lastResult = s.result;
-      ui.result.hidden = !s.result || s.mode === 'match'; // matches show their own cards
-      if (s.result && s.mode !== 'match') {
+      const ownCards = s.mode === 'match' || s.mode === 'online'; // matches show their own cards
+      ui.result.hidden = !s.result || ownCards;
+      if (s.result && !ownCards) {
         ui.resultKicker.textContent = s.hole ? (s.hole.practice ? `Practice · ${s.hole.name}` : `Hole ${s.hole.number} · ${s.hole.city}`) : '';
         const hasNext = s.mode === 'tour' && s.tourIndex + 1 < s.tourCount;
         ui.nextBtn.hidden = !hasNext;

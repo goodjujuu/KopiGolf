@@ -48,18 +48,23 @@ MODULES = [
     "src/input/swing.js",
     "src/game/controller.js",
     "src/game/match.js",
+    "src/net/firebaseConfig.js",
+    "src/net/backend.js",
+    "src/net/online.js",
+    "src/game/onlinePlay.js",
     "src/ui/clubArt.js",
     "src/hud.js",
     "src/ui/home.js",
     "src/ui/locker.js",
     "src/ui/tour.js",
     "src/ui/match.js",
+    "src/ui/online.js",
     "src/main.js",
 ]
 
 THREE_IMPORT = re.compile(r"^import \* as THREE from ['\"]three['\"];\s*$", re.M)
 LOCAL_IMPORT = re.compile(r"^import \{([^}]*)\} from ['\"](\.{1,2}/[^'\"]+)['\"];\s*$", re.M)
-EXPORT = re.compile(r"^export\s+(const|let|function|class)\s+([A-Za-z_$][\w$]*)", re.M)
+EXPORT = re.compile(r"^export\s+(const|let|async function|function|class)\s+([A-Za-z_$][\w$]*)", re.M)
 
 
 def module_var(rel: str) -> str:

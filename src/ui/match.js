@@ -142,7 +142,7 @@ const VIEWS = {
     const rows = hole.players.map((p) => `
       <tr class="${hole.strokes[p] === best ? 'is-best' : ''}">
         <th scope="row">${esc(m.players[p].name)}</th>
-        <td>${hole.strokes[p]}</td>
+        <td>${hole.strokes[p]}${hole.titles[p] ? `<small class="match-title">${esc(hole.titles[p])}</small>` : ''}</td>
         <td>${m.wins[p]}</td>
       </tr>`).join('');
     let btn = 'Next hole';

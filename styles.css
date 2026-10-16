@@ -913,3 +913,51 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .cancel-swing b { font-weight: 800; font-size: 15px; }
 .cancel-swing small { font-weight: 700; font-size: 11px; opacity: 0.85; }
 .cancel-swing.is-hot { transform: scale(1.08); background: #d63031; }
+
+.match-title { display: block; font-size: 11px; font-weight: 700; color: var(--card-muted); }
+
+
+/* ---------- Online play ---------- */
+.online-card { background: linear-gradient(150deg, #7fe0f5, #2a9fd6); }
+.online-card .match-setup-kicker, .online-card .match-setup-sub { color: rgba(10, 40, 60, 0.78); }
+.online-field { display: grid; gap: 4px; }
+.online-field > span { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(10, 40, 60, 0.75); }
+.online-join { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.online-code { text-align: center; text-transform: uppercase; letter-spacing: 0.3em; font-family: var(--font-display); font-weight: 400; font-size: 20px; }
+.online-code::placeholder { letter-spacing: 0.2em; color: rgba(22, 58, 42, 0.35); }
+.online-join .secondary-btn { min-height: var(--tap); padding-inline: 16px; background: rgba(255, 255, 255, 0.85); }
+.online-card .primary-btn:disabled, .online-join button:disabled, .lobby-start:disabled { opacity: 0.45; cursor: not-allowed; }
+.online-msg { margin: 0; padding: 8px 10px; border-radius: 10px; background: rgba(214, 48, 49, 0.14); color: #8a1c1c; font-weight: 800; font-size: 13px; }
+.online-msg.is-off { background: rgba(255, 255, 255, 0.55); color: var(--card-ink); font-weight: 700; }
+
+.lobby-panel { padding-inline: max(var(--edge), env(safe-area-inset-left, 0px)) max(var(--edge), env(safe-area-inset-right, 0px)); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
+.lobby-code-box { display: grid; justify-items: center; gap: 6px; padding: 18px; border-radius: 20px; background: linear-gradient(150deg, #7fe0f5, #2a9fd6); text-align: center; }
+.lobby-code-box .match-setup-kicker { color: rgba(10, 40, 60, 0.75); }
+.lobby-code { margin: 0; font-family: var(--font-display); font-size: 64px; line-height: 1; letter-spacing: 0.12em; color: var(--card-ink); }
+.lobby-code-box .secondary-btn { width: auto; min-height: var(--tap); padding-inline: 22px; background: rgba(255, 255, 255, 0.9); }
+.lobby-players { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.lobby-player { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 14px; border-radius: 14px; background: rgba(22, 58, 42, 0.06); font-weight: 800; font-size: 16px; }
+.lobby-player small { font-weight: 700; color: var(--card-muted); }
+.lobby-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.lobby-dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: #2fb36a; box-shadow: 0 0 0 3px rgba(47, 179, 106, 0.2); }
+.lobby-player.is-away { opacity: 0.6; }
+.lobby-player.is-away .lobby-dot { background: #9aa4a0; box-shadow: none; }
+.lobby-host, .lobby-away { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.lobby-host { background: #ffd36b; color: var(--card-ink); }
+.lobby-away { background: rgba(22, 58, 42, 0.1); color: var(--card-muted); }
+.lobby-note { padding-inline: 0; text-align: center; }
+
+.live-list { display: grid; gap: 4px; width: 100%; margin: 4px 0 0; padding: 0; list-style: none; }
+.live-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; padding: 6px 12px; border-radius: 12px; background: rgba(22, 58, 42, 0.06); font-weight: 800; font-size: 15px; text-align: left; }
+.live-row.is-done { background: rgba(47, 179, 106, 0.14); }
+.live-name { min-width: 0; overflow-wrap: anywhere; }
+.live-name small, .live-status small { font-weight: 700; color: var(--card-muted); }
+.live-status { flex: none; display: flex; align-items: baseline; gap: 6px; }
+.live-dots { font-weight: 700; color: var(--card-muted); }
+.live-dots i { font-style: normal; animation: blink 1.2s infinite; }
+.live-dots i:nth-child(2) { animation-delay: 0.2s; }
+.live-dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+.pickup-btn { min-height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: #d63031; color: #fff; font-family: var(--font-body); font-weight: 800; font-size: 12px; cursor: pointer; }
+.match-hint { margin: 6px 0 0; font-weight: 700; font-size: 12px; line-height: 1.35; color: var(--card-muted); }
+.match-card .secondary-btn { width: 100%; }

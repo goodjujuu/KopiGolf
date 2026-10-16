@@ -4,8 +4,9 @@
 export function createSession() {
   const listeners = new Set();
   const state = {
-    screen: 'home',     // 'home' | 'locker' | 'tour' | 'play'
-    mode: 'practice',   // 'practice' | 'tour' | 'match'
+    screen: 'home',     // 'home' | 'locker' | 'tour' | 'lobby' | 'play'
+    mode: 'practice',   // 'practice' | 'tour' | 'match' (pass the phone) | 'online'
+    online: null,       // online room status for the UI (game/onlinePlay.js)
     match: null,        // best-of-3 match in progress (game/match.js)
     tourIndex: 0,
     tourCount: 0,

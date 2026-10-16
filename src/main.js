@@ -5,6 +5,8 @@ import { createHUD } from './hud.js';
 import { createGameController, drawWind } from './game/controller.js';
 import { MAX_STROKES, createMatch, currentHole, finishHole, isLastTurn, nextHole, nextTurn, recordTurn } from './game/match.js';
 import { createMatchSetup, createMatchOverlay } from './ui/match.js';
+import { createOnlinePlay } from './game/onlinePlay.js';
+import { createOnlineUI } from './ui/online.js';
 import { createSwingInput } from './input/swing.js';
 import { createHome, loadSavedSettings } from './ui/home.js';
 import { createLocker } from './ui/locker.js';
@@ -30,7 +32,10 @@ const playTour = (index) => {
   session.set({ screen: 'play', mode: 'tour', tourIndex: index, tourCount: CATALOG.tour.count, hole });
   controller.startHole(hole, session.state.settings);
 };
-const goHome = () => session.set({ screen: 'home', mapOpen: false, bagOpen: false, match: null, mode: session.state.mode === 'match' ? 'tour' : session.state.mode });
+const goHome = () => {
+  if (session.state.mode === 'online') online.leave();
+  session.set({ screen: 'home', mapOpen: false, bagOpen: false, match: null, mode: session.state.mode === 'match' || session.state.mode === 'online' ? 'tour' : session.state.mode });
+};
 
 // ---------- Random best of 3 (pass the phone) ----------
 // Load the match's current hole with its shared wind; the hand-off card sits on top while the
@@ -86,6 +91,9 @@ createLocker(session, { onChange: (look) => game.setLook(look) });
 document.getElementById('btn-open-locker').addEventListener('click', () => session.set({ screen: 'locker' }));
 createTourScreen(session, { onPlay: playTour });
 createMatchSetup({ onStart: startMatch });
+// Online: friends on their own phones.
+const online = createOnlinePlay({ session, controller, catalog: CATALOG, toast: (t, sub) => hud.toast(t, sub) });
+createOnlineUI(session, online, { toast: (t, sub) => hud.toast(t, sub) });
 createMatchOverlay(session, {
   onTeeOff: () => {
     const m = session.state.match;
@@ -102,6 +110,7 @@ session.subscribe((s) => {
   const m = s.match;
   if (s.mode !== 'match' || !m || m.stage !== 'playing' || !s.result) return;
   recordTurn(m, s.result.strokes, s.result.title);
+  if (isLastTurn(m)) finishHole(m); // last player done: straight to who won the hole
   session.set({ match: m });
 });
 document.getElementById('btn-open-tour').addEventListener('click', () => session.set({ screen: 'tour' }));
@@ -129,7 +138,7 @@ new ResizeObserver(sizeStage).observe(stage);
 sizeStage();
 
 // Pause the course while the tab is hidden or the Locker (with its own preview) is open.
-const updatePaused = () => game.setPaused(document.hidden || session.state.screen === 'locker' || session.state.screen === 'tour');
+const updatePaused = () => game.setPaused(document.hidden || session.state.screen === 'locker' || session.state.screen === 'tour' || session.state.screen === 'lobby');
 document.addEventListener('visibilitychange', updatePaused);
 session.subscribe(updatePaused);
 

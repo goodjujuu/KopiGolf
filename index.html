@@ -224,6 +224,24 @@
       <h2 class="locker-title" id="tour-title">Play with friends</h2>
     </header>
     <div class="tour-panel">
+      <section class="match-setup online-card" aria-labelledby="online-title">
+        <div class="match-setup-head">
+          <p class="match-setup-kicker">Everyone on their own phone</p>
+          <h3 class="match-setup-title" id="online-title">Play online</h3>
+          <p class="match-setup-sub">Make a room and send friends the code. Same random best of 3, everyone plays at the same time.</p>
+        </div>
+        <label class="online-field">
+          <span>Your name</span>
+          <input class="match-player-name" id="online-name" type="text" maxlength="14" autocomplete="nickname" spellcheck="false">
+        </label>
+        <button class="primary-btn" id="btn-create-room" type="button">Create a room</button>
+        <div class="online-join">
+          <input class="match-player-name online-code" id="join-code" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="4" placeholder="CODE" aria-label="Room code">
+          <button class="secondary-btn" id="btn-join-room" type="button">Join room</button>
+        </div>
+        <p class="online-msg" id="online-msg" role="alert" hidden></p>
+      </section>
+      <h3 class="tour-or">Or pass one phone around</h3>
       <section class="match-setup" aria-labelledby="match-setup-title">
         <div class="match-setup-head">
           <p class="match-setup-kicker">Pass the phone</p>
@@ -259,6 +277,31 @@
       <div class="tour-list" id="tour-list"></div>
     </div>
   </section>
+
+  <section class="tour lobby" id="lobby" hidden aria-labelledby="lobby-title">
+    <header class="locker-top">
+      <button class="hud-btn" id="btn-lobby-leave" type="button" aria-label="Leave room">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 class="locker-title" id="lobby-title">Room</h2>
+    </header>
+    <div class="tour-panel lobby-panel">
+      <div class="lobby-code-box">
+        <p class="match-setup-kicker">Room code</p>
+        <p class="lobby-code" id="lobby-code">----</p>
+        <button class="secondary-btn" id="btn-invite" type="button">Invite friends</button>
+      </div>
+      <p class="tour-group">Players</p>
+      <ol class="lobby-players" id="lobby-players"></ol>
+      <p class="tour-note lobby-note" id="lobby-note"></p>
+      <button class="primary-btn lobby-start" id="btn-lobby-start" type="button">Start match</button>
+      <button class="text-btn" id="btn-lobby-leave-2" type="button">Leave room</button>
+    </div>
+  </section>
+
+  <div class="match-overlay" id="online-overlay" hidden>
+    <div class="match-card" id="online-view" role="dialog" aria-modal="true" aria-live="polite"></div>
+  </div>
 
   <div class="match-overlay" id="match" hidden>
     <div class="match-card" id="match-card" role="dialog" aria-modal="true" aria-live="polite"></div>
