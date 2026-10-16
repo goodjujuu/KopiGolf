@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { REDUCED_MOTION } from '../config.js';
 import { BALL_RADIUS } from './ball.js';
+import { HEAD_FINISHES } from '../avatar/looks.js';
 
 // The player's club, the game's main sprite.
 //
@@ -11,7 +12,7 @@ import { BALL_RADIUS } from './ball.js';
 //       └ swing    the swing is a rotation of this node about a LEVEL axis across the target line,
 //                  so the head always travels up and back, never down into the turf
 //          └ lean  fixed address lean: shaft tilts left and toward the camera
-//             ├ grip
+//             ├ grip   + the player's hands and forearms (gloves / sleeves from the Locker)
 //             ├ shaft
 //             └ head  one per kind (iron, wedge, wood, putter); sole kept flat, face toward the target
 //
@@ -76,6 +77,40 @@ export function createClub() {
   }
   heads.iron.visible = true;
 
+  // First-person hands on the grip: lead (left) hand on top, right hand below, forearms
+  // continuing up the line of the shaft out of view.
+  const skinMat = new THREE.MeshLambertMaterial({ color: 0xe0a476 });
+  const leadHandMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const trailHandMat = new THREE.MeshLambertMaterial({ color: 0xe0a476 });
+  const sleeveMat = new THREE.MeshLambertMaterial({ color: 0x3a63d8 });
+  const handGeo = new THREE.SphereGeometry(0.034, 14, 10);
+  const leadHand = new THREE.Mesh(handGeo, leadHandMat);
+  leadHand.position.set(0, -0.05, 0.004);
+  leadHand.scale.set(1.05, 1.35, 1.1);
+  const trailHand = new THREE.Mesh(handGeo, trailHandMat);
+  trailHand.position.set(0.004, -0.12, 0.01);
+  trailHand.scale.set(1, 1.3, 1.1);
+  lean.add(leadHand, trailHand);
+  // Each arm runs from the grip up toward its shoulder (above the camera), so it leaves the
+  // top of the screen like your own arms would. Forearm = skin or sleeve; upper arm = shirt.
+  const forearmGeo = new THREE.CapsuleGeometry(0.03, 0.28, 4, 10);
+  const upperArmGeo = new THREE.CapsuleGeometry(0.038, 0.62, 4, 10);
+  const shirtMat = new THREE.MeshLambertMaterial({ color: 0x3a63d8 });
+  const forearms = [];
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Group();
+    arm.position.set(side * 0.012, 0.005, 0.01);
+    // Angled up toward the camera and off the left of the screen (checked for the default camera).
+    arm.rotation.set(0.35, 0, side < 0 ? 0.4 : -0.1);
+    const fore = new THREE.Mesh(forearmGeo, skinMat);
+    fore.position.y = 0.17;
+    const upper = new THREE.Mesh(upperArmGeo, shirtMat);
+    upper.position.y = 0.66;
+    arm.add(fore, upper);
+    lean.add(arm);
+    forearms.push(fore);
+  }
+
   root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
   const offset = new THREE.Vector3();
@@ -93,6 +128,24 @@ export function createClub() {
       root.rotation.set(0, aimYaw, 0);
       offset.set(-0.015, 0, BALL_RADIUS + HEAD.d / 2 + 0.006).applyAxisAngle(UP, aimYaw);
       root.position.set(ballPos.x + offset.x, groundY + HEAD.h / 2, ballPos.z + offset.z);
+    },
+
+    // Apply the Locker look: shaft, grip, head finish, gloves and sleeves.
+    setLook(look) {
+      shaft.material.color.set(look.shaftColour);
+      grip.material.color.set(look.gripColour);
+      const finish = HEAD_FINISHES[look.headFinish] ?? HEAD_FINISHES.chrome;
+      for (const h of Object.values(heads)) {
+        h.material.color.set(finish.hex);
+        h.material.shininess = finish.shine;
+      }
+      skinMat.color.set(look.skin);
+      leadHandMat.color.set(look.gloves === 'none' ? look.skin : look.glovesColour);
+      trailHandMat.color.set(look.gloves === 'both' ? look.glovesColour : look.skin);
+      const longSleeves = ['longsleeve', 'hoodie', 'jacket', 'vest'].includes(look.top);
+      sleeveMat.color.set(look.top === 'vest' ? look.topAccent : look.topColour);
+      shirtMat.color.set(look.top === 'vest' ? look.topAccent : look.topColour);
+      for (const arm of forearms) arm.material = longSleeves ? sleeveMat : skinMat;
     },
 
     setKind(kind) {

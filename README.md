@@ -15,6 +15,10 @@ Low-poly 3D golf in the browser. Play a hole with a swipe swing, then challenge 
 - Practice: choose Day / Sunset / Night and Calm / Breezy / Windy on the home screen.
   The wind chip under the hole badge shows speed, and its arrow points where the wind blows
   (up = helping you).
+- Locker (from the home screen): customise your golfer (body, face, hair, hat, glasses, top,
+  bottoms, shoes, gloves) and your clubs (head finish, shaft, grip, ball colour). Drag the preview
+  to spin it; Randomise for a surprise. Your look is saved on this device. In a round you see your
+  gloves, sleeves, club colours and ball.
 
 ## Run it locally
 Browsers block ES modules from file://, so serve the folder:
@@ -37,6 +41,9 @@ Friends open the link; on iPhone, Share → "Add to Home Screen" makes it full-s
     src/input/swing.js    touch/mouse gesture -> aim, backswing, impact
     src/physics/          ball flight/bounce/roll, wind, guide arc, surfaces, terrain (no 3D code; testable)
     src/ui/home.js        home screen and practice options
+    src/ui/locker.js      Locker screen + 3D preview
+    src/avatar/looks.js   every customisation option and colour palette (add new ones here)
+    src/avatar/avatar.js  builds the 3D golfer from a look
     src/courses/practice.js  the practice map (Practice mode only)
     src/config.js         every scaling number and colour palette
     src/scene.js          renderer, camera framing, lights, loop

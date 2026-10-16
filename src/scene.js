@@ -228,6 +228,7 @@ export function createGameScene(canvas) {
     setGuide,
     setTimeOfDay,
     setClubKind(kind) { club.setKind(kind); },
+    setLook(look) { club.setLook(look); ball.setColour(look.ballColour); },
     beginFlight,
     resize,
     club,

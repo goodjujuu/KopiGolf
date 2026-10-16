@@ -4,7 +4,7 @@
 export function createSession() {
   const listeners = new Set();
   const state = {
-    screen: 'home',     // 'home' | 'play'
+    screen: 'home',     // 'home' | 'locker' | 'play'
     mode: 'practice',   // 'practice' (later: 'match')
     settings: { timeOfDay: 'day', wind: 'calm' },
     wind: null,         // { speed, yaw, x, z } for the current hole

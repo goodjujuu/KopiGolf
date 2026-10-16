@@ -5,6 +5,7 @@ import { createHUD } from './hud.js';
 import { createGameController } from './game/controller.js';
 import { createSwingInput } from './input/swing.js';
 import { createHome, loadSavedSettings } from './ui/home.js';
+import { createLocker } from './ui/locker.js';
 
 // Entry point: wires state, 3D scene, rules, input and HUD together, and handles screen-level
 // concerns (resizing, pausing in the background, blocking browser gestures that fight the game).
@@ -38,6 +39,9 @@ createHome(session, {
   },
 });
 
+createLocker(session, { onChange: (look) => game.setLook(look) });
+document.getElementById('btn-open-locker').addEventListener('click', () => session.set({ screen: 'locker' }));
+
 // The course sits behind the home screen as a live backdrop, seen from the look-ahead camera.
 session.set({ hole: currentHole });
 controller.startHole(currentHole);
@@ -60,7 +64,10 @@ const sizeStage = () => {
 new ResizeObserver(sizeStage).observe(stage);
 sizeStage();
 
-document.addEventListener('visibilitychange', () => game.setPaused(document.hidden));
+// Pause the course while the tab is hidden or the Locker (with its own preview) is open.
+const updatePaused = () => game.setPaused(document.hidden || session.state.screen === 'locker');
+document.addEventListener('visibilitychange', updatePaused);
+session.subscribe(updatePaused);
 
 // iOS Safari: stop pinch-zoom and the long-press callout from hijacking the game.
 for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {

@@ -25,6 +25,8 @@ MODULES = [
     "src/physics/terrain.js",
     "src/physics/course.js",
     "src/physics/ball.js",
+    "src/avatar/looks.js",
+    "src/avatar/avatar.js",
     "src/world/materials.js",
     "src/world/palm.js",
     "src/world/builder.js",
@@ -35,6 +37,7 @@ MODULES = [
     "src/game/controller.js",
     "src/hud.js",
     "src/ui/home.js",
+    "src/ui/locker.js",
     "src/main.js",
 ]
 
