@@ -26,6 +26,9 @@
 
 html, body { height: 100%; }
 
+/* Make the `hidden` attribute always win over display rules like `display: flex` below. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   overflow: hidden;
