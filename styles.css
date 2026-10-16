@@ -120,6 +120,23 @@ body {
 .restart-btn.is-confirm { background: var(--flag); border-color: rgba(255, 255, 255, 0.7); }
 .restart-btn.is-confirm .restart-label { display: block; animation: fade 0.15s ease; }
 .hud-mid { display: flex; justify-content: space-between; align-items: center; transform: translateY(-6%); }
+.hud-side { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.friends-btn { position: relative; }
+.friends-btn[hidden] { display: none; }
+.friends-count {
+  position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px;
+  display: grid; place-items: center; border-radius: 999px; background: var(--flag); color: var(--ink);
+  font-size: 11px; font-weight: 800; line-height: 1; box-shadow: 0 1px 4px var(--ink-shade);
+}
+.friends-count:empty { display: none; }
+.watch-chip {
+  position: absolute; right: calc(100% + 10px); bottom: 4px; display: grid; gap: 1px; padding: 7px 12px;
+  border-radius: 14px; background: var(--glass-on); color: var(--card-ink); text-align: right; white-space: nowrap;
+  box-shadow: 0 2px 10px var(--ink-shade); pointer-events: none; animation: fade 0.15s ease;
+}
+.watch-chip[hidden] { display: none; }
+.watch-chip b { font-size: 14px; font-weight: 800; }
+.watch-chip small { font-size: 11px; font-weight: 700; opacity: 0.7; }
 .hud-bottom { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 
 /* Hole badge */
@@ -944,6 +961,7 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .lobby-player.is-away .lobby-dot { background: #9aa4a0; box-shadow: none; }
 .lobby-host, .lobby-away { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 .lobby-host { background: #ffd36b; color: var(--card-ink); }
+.lobby-old { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; background: #ff8a6b; color: #fff; }
 .lobby-away { background: rgba(22, 58, 42, 0.1); color: var(--card-muted); }
 .lobby-note { padding-inline: 0; text-align: center; }
 

@@ -25,6 +25,11 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
     restartBtn: el('btn-restart'),
     cancelSwing: el('btn-cancel-swing'),
     lookBtn: el('btn-look'),
+    friendsBtn: el('btn-friends'),
+    friendsCount: el('friends-count'),
+    watchChip: el('watch-chip'),
+    watchName: el('watch-name'),
+    watchSub: el('watch-sub'),
     sheet: el('map-sheet'),
     closeBtn: el('btn-map-close'),
     mapKicker: el('map-kicker'),
@@ -57,7 +62,16 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
   const tap = () => { try { navigator.vibrate?.(8); } catch { /* not supported on iPhone */ } };
 
   ui.mapBtn.addEventListener('click', () => { tap(); session.set({ mapOpen: !session.state.mapOpen }); });
-  ui.lookBtn.addEventListener('click', () => { tap(); session.set({ lookAhead: !session.state.lookAhead }); });
+  ui.lookBtn.addEventListener('click', () => { tap(); session.set({ lookAhead: !session.state.lookAhead, watching: null }); });
+  // Friends: each tap moves the camera to the next friend still playing this hole, then back to you.
+  ui.friendsBtn.addEventListener('click', () => {
+    tap();
+    const list = session.state.friendsHere ?? [];
+    if (!list.length) { session.set({ watching: null }); return; }
+    const i = list.findIndex((f) => f.id === session.state.watching);
+    const next = i + 1 < list.length ? list[i + 1].id : null;
+    session.set({ watching: next, lookAhead: false });
+  });
   ui.closeBtn.addEventListener('click', () => session.set({ mapOpen: false }));
   ui.sheet.addEventListener('click', (e) => { if (e.target === ui.sheet) session.set({ mapOpen: false }); });
   ui.againBtn.addEventListener('click', () => { tap(); onPlayAgain(); });
@@ -173,6 +187,18 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
 
     ui.mapBtn.setAttribute('aria-pressed', String(s.mapOpen));
     ui.lookBtn.setAttribute('aria-pressed', String(s.lookAhead));
+    const here = s.mode === 'online' ? (s.friendsHere ?? []) : [];
+    ui.friendsBtn.hidden = !here.length;
+    ui.friendsCount.textContent = here.length > 1 ? String(here.length) : '';
+    const watched = s.watching ? here.find((f) => f.id === s.watching) : null;
+    ui.friendsBtn.setAttribute('aria-pressed', String(!!watched));
+    ui.friendsBtn.setAttribute('aria-label', watched ? (here.indexOf(watched) + 1 < here.length ? 'Watch the next friend' : 'Back to your ball') : 'Watch your friends');
+    ui.watchChip.hidden = !watched;
+    if (watched) {
+      ui.watchName.textContent = `Watching ${watched.name}`;
+      const strokes = watched.strokes ?? 0;
+      ui.watchSub.textContent = `${strokes ? `${strokes} ${strokes === 1 ? 'stroke' : 'strokes'}` : 'on the tee'} · tap ${here.indexOf(watched) + 1 < here.length ? 'for next' : 'to come back'}`;
+    }
     ui.lookBtn.setAttribute('aria-label', s.lookAhead ? 'Back to the ball' : 'Look toward the pin');
 
     if (s.mapOpen !== lastMapOpen) {

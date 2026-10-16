@@ -39,8 +39,10 @@ async function firebaseBackend(config) {
   return {
     kind: 'firebase',
     async get(path) { return (await fb.get(ref(path))).val(); },
-    set: (path, value) => fb.set(ref(path), value),
-    update: (path, patch) => fb.update(ref(path), patch),
+    // async so a value Firebase refuses comes back as a rejected promise, never a throw that
+    // would break the shot that sent it.
+    set: async (path, value) => fb.set(ref(path), value),
+    update: async (path, patch) => fb.update(ref(path), patch),
     remove: (path) => fb.remove(ref(path)),
     subscribe: (path, cb) => fb.onValue(ref(path), (snap) => cb(snap.val())),
     onDisconnectSet: (path, value) => fb.onDisconnect(ref(path)).set(value),

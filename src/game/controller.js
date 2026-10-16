@@ -166,7 +166,7 @@ export function createGameController({ game, session, hud, events = {} }) {
 
   function hit(shot) {
     hud.showPower(null);
-    session.set({ strokes: session.state.strokes + 1, hintSeen: true });
+    session.set({ strokes: session.state.strokes + 1, hintSeen: true, ...(session.state.watching ? { watching: null } : {}) });
     game.club.followThrough();
 
     const isPutt = club.kind === 'putter';
@@ -196,7 +196,7 @@ export function createGameController({ game, session, hud, events = {} }) {
   const input = {
     canStart: () => session.state.screen === 'play' && phase === 'idle' && !session.state.mapOpen && !session.state.bagOpen,
     begin() {
-      if (session.state.lookAhead) session.set({ lookAhead: false });
+      if (session.state.lookAhead || session.state.watching) session.set({ lookAhead: false, watching: null });
     },
     aim(dxPixels) {
       const max = SWING.maxAimOffsetDeg * DEG;

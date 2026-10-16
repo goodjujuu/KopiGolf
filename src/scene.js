@@ -4,6 +4,7 @@ import { buildWorld } from './world/builder.js';
 import { createBall, BALL_RADIUS } from './entities/ball.js';
 import { createClub } from './entities/club.js';
 import { createGhosts } from './world/ghosts.js';
+import { groundHeight } from './physics/course.js';
 
 // Owns the renderer, camera, lights and the frame loop. It draws whatever the game controller
 // tells it to; it has no game rules of its own.
@@ -61,6 +62,10 @@ export function createGameScene(canvas) {
   const tmpMatrix = new THREE.Matrix4();
   let cameraMode = 'shot'; // 'shot' | 'follow'
   let lookAhead = false;
+  let watchId = null; // a friend's id while the camera is watching them (online play)
+  const watchPose = { pos: new THREE.Vector3(), quat: new THREE.Quaternion() };
+  const watchLook = new THREE.Vector3();
+  const watchDir = new THREE.Vector3();
   let snapCamera = true;
   let clubHideTimer = 0;
 
@@ -170,6 +175,8 @@ export function createGameScene(canvas) {
     lookPose.quat.setFromRotationMatrix(tmpMatrix);
   }
 
+  const groundAt = (p) => (hole ? groundHeight(hole, p.x, p.z) : 0);
+
   // ---------- loop ----------
   const clock = new THREE.Clock();
   let rafId = 0;
@@ -187,7 +194,29 @@ export function createGameScene(canvas) {
     // Camera
     let target;
     let rate = 4.5;
-    if (cameraMode === 'flight') {
+    const watching = watchId && cameraMode !== 'flight' ? friends.focus(watchId) : null;
+    if (watching) {
+      const b = watching.ball;
+      if (watching.flying) {
+        // Chase their ball like your own.
+        watchPose.pos.copy(b).addScaledVector(watching.flyDir, -FOLLOW_BACK);
+        watchPose.pos.y = Math.max(b.y, groundAt(b)) + FOLLOW_UP;
+        watchLook.copy(b);
+        rate = 5;
+      } else {
+        // Over their shoulder: behind the ball, looking up the hole, golfer and ball in view.
+        watchDir.set(watching.pin[0] - b.x, 0, watching.pin[2] - b.z);
+        if (watchDir.lengthSq() < 1e-4) watchDir.set(0, 0, -1);
+        watchDir.normalize();
+        const g = groundAt(b);
+        watchPose.pos.set(b.x - watchDir.x * 7 + watchDir.z * 1.2, g + 3.4, b.z - watchDir.z * 7 - watchDir.x * 1.2);
+        watchLook.set(b.x + watchDir.x * 6, g + 0.4, b.z + watchDir.z * 6);
+        rate = 3.2;
+      }
+      tmpMatrix.lookAt(watchPose.pos, watchLook, WORLD_UP);
+      watchPose.quat.setFromRotationMatrix(tmpMatrix);
+      target = watchPose;
+    } else if (cameraMode === 'flight') {
       followPose.pos.copy(ball.mesh.position).addScaledVector(flightDir, -FOLLOW_BACK);
       followPose.pos.y = Math.max(ball.mesh.position.y, groundY) + FOLLOW_UP;
       tmpMatrix.lookAt(followPose.pos, ball.mesh.position, WORLD_UP);
@@ -210,7 +239,7 @@ export function createGameScene(canvas) {
     stars.position.copy(camera.position);
 
     // Keep the tight shadow box on whatever the player is watching.
-    const focus = cameraMode === 'flight' ? ball.mesh.position : lie;
+    const focus = watching ? watching.ball : cameraMode === 'flight' ? ball.mesh.position : lie;
     sunOffset.fromArray(lighting.sunOffset).applyAxisAngle(WORLD_UP, aimYaw);
     sun.position.copy(focus).add(sunOffset);
     sun.target.position.copy(focus);
@@ -245,6 +274,8 @@ export function createGameScene(canvas) {
     club,
     friends,
     setLookAhead(on) { lookAhead = on; },
+    // Watch a friend (their id) or come back to your own ball (null).
+    setWatch(id) { watchId = id || null; },
     setBallPosition(p) { ball.mesh.position.set(p.x, p.y, p.z); },
     setBallVisible(on) { ball.mesh.visible = on; },
     start(firstFrameCallback, tickCallback) {

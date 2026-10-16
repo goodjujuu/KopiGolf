@@ -29,6 +29,8 @@ export function createSession() {
     hintSeen: false,    // hide the swing instructions after the first shot
     mapOpen: false,
     lookAhead: false,
+    friendsHere: [],    // online: friends still playing this hole [{ id, name, strokes }]
+    watching: null,     // online: id of the friend the camera is watching, or null for your ball
   };
 
   return {

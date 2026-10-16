@@ -1,5 +1,5 @@
 import { connectBackend, onlineMode } from '../net/backend.js';
-import { createRoomApi, deviceId, replayRoom, cleanCode } from '../net/online.js';
+import { createRoomApi, deviceId, replayRoom, cleanCode, NET_VERSION } from '../net/online.js';
 import { MAX_STROKES } from './match.js';
 
 // Online play on your own phone: joins a room, follows it, and drives this device's game.
@@ -66,6 +66,7 @@ export function createOnlinePlay({ session, controller, catalog, toast, getLook 
     try { store().removeItem(ROOM_KEY); } catch { /* storage blocked */ }
     patch({ code: null, room: null, view: null, teedOff: false, error: message });
     friends?.clear();
+    setFriendsHere([]);
     const s = session.state;
     if (s.mode === 'online' || s.screen === 'lobby') session.set({ screen: 'tour', mode: 'tour' });
   }
@@ -75,8 +76,10 @@ export function createOnlinePlay({ session, controller, catalog, toast, getLook 
     if (!room) { stopFollowing('That room has closed.'); return; }
     if (!room.players?.[api.me]) { stopFollowing('You left the room.'); return; }
 
+    checkVersions();
     if (room.status === 'lobby') {
       friends?.clear();
+      setFriendsHere([]);
       loadedK = -1;
       teedOff = false;
       patch({ room, view: null, teedOff });
@@ -121,7 +124,7 @@ export function createOnlinePlay({ session, controller, catalog, toast, getLook 
   // Show everyone else on this hole on my course: where their ball is, and replay new swings.
   function syncFriends(view) {
     if (!friends) return;
-    if (view.state !== 'hole') { friends.clear(); return; }
+    if (view.state !== 'hole') { friends.clear(); setFriendsHere([]); return; }
     const mh = view.match.holes[view.k];
     const live = room.live?.[view.k] ?? {};
     const list = mh.players
@@ -131,10 +134,35 @@ export function createOnlinePlay({ session, controller, catalog, toast, getLook 
         const l = live[id] ?? {};
         return {
           id, index: i, name: view.match.players[p].name, look: room.players?.[id]?.look ?? {},
-          lie: l.lie ?? null, shot: l.shot ?? null, done: !!l.done || mh.strokes[p] !== undefined,
+          lie: l.lie ?? null, shot: l.shot ?? null, strokes: Math.max(l.strokes ?? 0, l.shot?.n ?? 0),
+          done: !!l.done || mh.strokes[p] !== undefined,
         };
       });
     friends.sync({ hole: catalog.tour.hole(mh.course), wind: mh.wind, friends: list });
+    setFriendsHere(list.filter((f) => !f.done).map(({ id, name, strokes }) => ({ id, name, strokes })));
+  }
+
+  // Who the Friends button can cycle through. Stop watching anyone who has holed out.
+  function setFriendsHere(list) {
+    const s = session.state;
+    const patchState = { friendsHere: list };
+    if (s.watching && !list.some((f) => f.id === s.watching)) patchState.watching = null;
+    session.set(patchState);
+  }
+
+  // Everyone needs the same version of the game to see each other. Old copies don't send where
+  // their ball is, so say so once per player instead of leaving them invisible.
+  const warned = new Set();
+  function checkVersions() {
+    for (const [id, p] of Object.entries(room.players ?? {})) {
+      if (id === api.me || p?.online === false) continue;
+      const v = Number(p?.v ?? 0);
+      const key = `${code}|${id}|${v}`;
+      if (v === NET_VERSION || warned.has(key)) continue;
+      warned.add(key);
+      if (v < NET_VERSION) toast(`${p?.name || 'A friend'} needs to refresh`, 'They have an older KopiGolf, so you can\'t see them on the course');
+      else toast('Refresh to update KopiGolf', `${p?.name || 'A friend'} has a newer version`);
+    }
   }
 
   function announceScores(view) {

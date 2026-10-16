@@ -43,10 +43,14 @@ export function createGhosts(scene) {
     );
     ball.visible = false;
     root.add(ball);
+    // A dot that stays the same size on screen over their ball, so you can spot it from 200 m.
+    const marker = ballMarker(f.look?.topColour ?? '#3a63d8');
+    marker.visible = false;
+    root.add(marker);
     const trail = makeTrail(ballColour);
     root.add(trail.line);
     rig = {
-      id: f.id, name: f.name, lookKey, holder, avatar, tag, ball, trail,
+      id: f.id, name: f.name, lookKey, holder, avatar, tag, ball, marker, trail, flyDir: new THREE.Vector3(0, 0, -1),
       pos: new THREE.Vector3(), from: new THREE.Vector3(), to: new THREE.Vector3(), yaw: 0,
       walk: 1, path: null, pathT: 0, seenShot: -1, lie: null, phase: Math.random() * 6,
     };
@@ -55,7 +59,7 @@ export function createGhosts(scene) {
   }
 
   function disposeRig(rig) {
-    root.remove(rig.holder, rig.ball, rig.trail.line);
+    root.remove(rig.holder, rig.ball, rig.marker, rig.trail.line);
     rig.holder.traverse((o) => { if (o.isMesh || o.isSprite) o.geometry?.dispose(); });
     friends.delete(rig.id);
   }
@@ -135,6 +139,7 @@ export function createGhosts(scene) {
         live.add(f.id);
         const rig = rigFor(f);
         rig.done = !!f.done;
+        rig.strokes = f.strokes ?? 0;
         rig.holder.visible = !f.done;
         rig.tag.visible = !f.done;
         // A new swing we haven't watched yet?
@@ -157,6 +162,9 @@ export function createGhosts(scene) {
           rig.pathT += dt * 60;
           const i = Math.min(rig.path.count - 1, Math.floor(rig.pathT));
           const p = rig.path.points;
+          const j = Math.max(0, i - 3);
+          rig.flyDir.set(p[i * 3] - p[j * 3], 0, p[i * 3 + 2] - p[j * 3 + 2]);
+          if (rig.flyDir.lengthSq() > 1e-4) rig.flyDir.normalize();
           rig.ball.position.set(p[i * 3], p[i * 3 + 1] + 0.02, p[i * 3 + 2]);
           rig.trail.push(rig.ball.position);
           if (i >= rig.path.count - 1) {
@@ -167,6 +175,9 @@ export function createGhosts(scene) {
           }
         }
         rig.trail.update(dt);
+        // (only from a distance: up close the real ball is easy to see)
+        rig.marker.visible = rig.ball.visible && !rig.done && (!camera || rig.ball.position.distanceTo(camera.position) > 14);
+        rig.marker.position.set(rig.ball.position.x, rig.ball.position.y + 0.32, rig.ball.position.z);
         // walk to the new spot
         if (rig.walk < 1) {
           rig.walk = Math.min(1, rig.walk + dt / WALK_TIME);
@@ -193,6 +204,22 @@ export function createGhosts(scene) {
     clear() {
       for (const rig of [...friends.values()]) disposeRig(rig);
       hole = null;
+    },
+
+    // What the camera needs to watch a friend: their ball, where they stand, and whether the
+    // ball is in the air. null once they've holed out (or aren't on this hole).
+    focus(id) {
+      const rig = friends.get(id);
+      if (!rig || rig.done || !hole) return null;
+      return {
+        ball: rig.ball.visible || rig.path ? rig.ball.position : rig.holder.position,
+        golfer: rig.holder.position,
+        flying: !!rig.path,
+        flyDir: rig.flyDir,
+        pin: hole.pin,
+        name: rig.name,
+        strokes: rig.strokes ?? 0,
+      };
     },
 
     // Where everyone is (for tests and debugging).
@@ -234,9 +261,34 @@ function nameTag(name, colour) {
   ctx.fillText(label, 128, 34);
   const tex = new THREE.CanvasTexture(canvas);
   if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, sizeAttenuation: false, transparent: true }));
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, sizeAttenuation: false, transparent: true, fog: false }));
   sprite.scale.set(0.16, 0.045, 1);
   sprite.renderOrder = 10;
+  return sprite;
+}
+
+// Friend's ball marker: a ring in their shirt colour with a white dot, constant size on screen.
+function ballMarker(colour) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.beginPath();
+  ctx.arc(32, 32, 24, 0, Math.PI * 2);
+  ctx.fillStyle = colour;
+  ctx.fill();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(32, 32, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  const tex = new THREE.CanvasTexture(canvas);
+  if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, sizeAttenuation: false, transparent: true, fog: false }));
+  sprite.scale.set(0.028, 0.028, 1);
+  sprite.renderOrder = 9;
   return sprite;
 }
 

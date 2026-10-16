@@ -28,6 +28,10 @@ export const cleanCode = (text) => String(text ?? '').toUpperCase().replace(/[^A
 
 // Who this device is. Kept so a refresh drops you back into your room. (On the local test
 // backend each tab is its own player.)
+// Bump when what devices send each other changes; friends on a different number get a
+// "refresh" heads-up. 2 = friends on the course (live lies and swings).
+export const NET_VERSION = 2;
+
 export function deviceId(local) {
   const store = local ? sessionStorage : localStorage;
   const key = 'kopigolf.deviceId';
@@ -87,8 +91,9 @@ export function createRoomApi(backend, me) {
       return code;
     },
 
+    // Also stamps which version of the game this device runs (see NET_VERSION).
     setLook(code, look) {
-      return backend.update(`${roomPath(code)}/players/${me}`, { look });
+      return backend.update(`${roomPath(code)}/players/${me}`, { look, v: NET_VERSION });
     },
 
     setLive(code, holeNo, patch) {

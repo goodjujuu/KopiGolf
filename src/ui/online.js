@@ -2,6 +2,7 @@ import { TOUR_SPECS } from '../courses/tour.js';
 import { PITCHES } from '../courses/pitches.js';
 import { WIND_LEVELS, MS_TO_MPH } from '../config.js';
 import { REGULATION_HOLES, MAX_STROKES, regulationStrokes } from '../game/match.js';
+import { NET_VERSION } from '../net/online.js';
 
 // Online play screens: the "Play online" card (create / join), the room lobby, and the cards
 // shown over the course during an online match (tee-off intro, live "waiting for…" list, hole
@@ -66,11 +67,12 @@ export function createOnlineUI(session, actions, { toast }) {
     else if (a === 'lobby') actions.toLobby();
     else if (a === 'leave') actions.leave();
     else if (a === 'pickup') actions.pickUpFor(Number(el.dataset.player));
+    else if (a === 'watch') session.set({ watching: session.state.friendsHere?.[0]?.id ?? null, lookAhead: false });
   });
 
   let lastHtml = '';
   session.subscribe((s) => {
-    const o = s.online ?? {};
+    let o = s.online ?? {};
     // card
     createBtn.disabled = joinBtn.disabled = !o.available || o.busy;
     msg.hidden = !(o.error || !o.available);
@@ -83,7 +85,10 @@ export function createOnlineUI(session, actions, { toast }) {
     if (s.screen === 'lobby' && o.room) renderLobby(o);
 
     // overlay
-    const show = s.screen === 'play' && s.mode === 'online' && o.view && !(o.view.state === 'hole' && o.view.myTurn && o.teedOff);
+    // (Watching a friend from the waiting card hides it; the Friends button brings it back.)
+    const waitingOn = o.view?.state === 'hole' && !o.view.myTurn;
+    const show = s.screen === 'play' && s.mode === 'online' && o.view && !(o.view.state === 'hole' && o.view.myTurn && o.teedOff) && !(waitingOn && s.watching);
+    if (waitingOn) o = { ...o, canWatch: (s.friendsHere ?? []).length > 0 };
     overlay.hidden = !show;
     if (!show) { lastHtml = ''; return; }
     const html = OVERLAY[o.view.state === 'hole' ? (o.view.myTurn ? 'intro' : 'waiting') : o.view.state](o);
@@ -104,6 +109,7 @@ export function createOnlineUI(session, actions, { toast }) {
         <span class="lobby-name">${esc(p.name || 'Player')}${id === me ? ' <small>(you)</small>' : ''}</span>
         ${id === room.host ? '<span class="lobby-host">Host</span>' : ''}
         ${p.online === false ? '<span class="lobby-away">away</span>' : ''}
+        ${p.online !== false && id !== me && Number(p.v ?? 0) < NET_VERSION ? '<span class="lobby-old">needs refresh</span>' : ''}
       </li>`).join('');
     const isHost = room.host === me;
     const ready = players.filter(([, p]) => p.online !== false).length;
@@ -184,6 +190,7 @@ const OVERLAY = {
       <p class="result-kicker">${holeLabel(v)} · ${esc(TOUR_SPECS[hole.course].city)}</p>
       ${head}
       ${progressList(o)}
+      ${o.canWatch ? '<button class="primary-btn" type="button" data-action="watch">Watch them play</button>' : ''}
       <p class="match-hint">Anyone away for good can be picked up (scored as ${MAX_STROKES}) so the rest can carry on.</p>`;
   },
 

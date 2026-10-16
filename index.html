@@ -55,9 +55,17 @@
         <div class="power-track"><div class="power-fill" id="power-fill"></div></div>
         <span class="power-label" id="power-label">0%</span>
       </div>
-      <button class="hud-btn" id="btn-look" type="button" aria-label="Look toward the pin" aria-pressed="false">
+      <div class="hud-side">
+        <button class="hud-btn" id="btn-look" type="button" aria-label="Look toward the pin" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><rect x="4.5" y="4" width="5.5" height="8" rx="1.6"/><rect x="14" y="4" width="5.5" height="8" rx="1.6"/><rect x="9" y="8.5" width="6" height="3.5" rx="1"/><circle cx="7" cy="15.5" r="4.6"/><circle cx="17" cy="15.5" r="4.6"/><circle cx="7" cy="15.5" r="2.1" fill="rgba(0,0,0,.28)"/><circle cx="17" cy="15.5" r="2.1" fill="rgba(0,0,0,.28)"/></svg>
       </button>
+        <!-- Online play: cycle the camera through your friends on this hole, then back to you. -->
+        <button class="hud-btn friends-btn" id="btn-friends" type="button" aria-label="Watch your friends" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="7.5" r="3.4"/><path d="M2.5 19.5c0-3.8 2.9-6.4 6.5-6.4s6.5 2.6 6.5 6.4z"/><circle cx="17" cy="8.5" r="2.7"/><path d="M15.9 13.4c3.3-.4 5.9 1.9 5.9 5.3V19.5h-4.6c0-2.4-.5-4.4-1.3-6.1z"/></svg>
+          <span class="friends-count" id="friends-count"></span>
+        </button>
+        <div class="watch-chip" id="watch-chip" hidden><b id="watch-name"></b><small id="watch-sub"></small></div>
+      </div>
     </div>
 
     <!-- Shown during the backswing: slide your finger onto it (or tap it with another finger)

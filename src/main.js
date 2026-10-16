@@ -141,6 +141,7 @@ controller.startHole(activeHole);
 let lastTimeOfDay = session.state.settings.timeOfDay;
 session.subscribe((s) => {
   game.setLookAhead(s.lookAhead || s.screen === 'home');
+  game.setWatch(s.mode === 'online' && s.screen === 'play' ? s.watching : null);
   // Preview the time of day while choosing it on the home screen.
   if (s.settings.timeOfDay !== lastTimeOfDay) {
     lastTimeOfDay = s.settings.timeOfDay;
