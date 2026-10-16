@@ -1,4 +1,5 @@
 import { METRES_TO_YARDS, MS_TO_MPH, THEMES, CLUBS, CLUB_ORDER } from './config.js';
+import { obstacleRadius } from './courses/obstacles.js';
 import { holeLength, holeAimYaw } from './courses/catalog.js';
 import { hillFootprint } from './physics/terrain.js';
 import { BIOMES } from './courses/biomes.js';
@@ -321,6 +322,22 @@ function drawMap(canvas, hole, ballAt) {
 
   // Hazards
   for (const pond of hole.ponds ?? []) drawEllipse(ctx, pond, P, scale, yaw, hex(theme.water));
+  if (hole.islandLand) drawEllipse(ctx, hole.islandLand, P, scale, yaw, hex(theme.fairway));
+  for (const river of hole.rivers ?? []) {
+    ctx.strokeStyle = hex(theme.water);
+    ctx.lineWidth = river.width * scale;
+    ctx.beginPath();
+    river.points.forEach(([x, z], i) => { const p = P(x, z); if (i) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); });
+    ctx.stroke();
+  }
+  // Obstacles (anything the ball can bounce off), as little dark markers.
+  ctx.fillStyle = 'rgba(40, 30, 25, 0.75)';
+  for (const o of hole.obstacles ?? []) {
+    const p = P(o.x, o.z);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(1.6, obstacleRadius(o.type) * o.scale * scale), 0, Math.PI * 2);
+    ctx.fill();
+  }
   for (const b of hole.bunkers ?? []) drawEllipse(ctx, b, P, scale, yaw, hex(theme.bunker));
 
   // Green

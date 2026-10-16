@@ -84,6 +84,7 @@ export function createGameController({ game, session, hud }) {
   let phase = 'idle';
   let timer = 0;
   let wind = drawWind('calm');
+  let hitThisShot = false;
 
   function setPhase(p) {
     phase = p;
@@ -167,6 +168,7 @@ export function createGameController({ game, session, hud }) {
     }
 
     game.beginFlight(aimYaw);
+    hitThisShot = false;
     const feedback = describeShot(shot, isPutt);
     hud.toast(feedback.title, feedback.sub);
     setPhase('flight');
@@ -203,6 +205,11 @@ export function createGameController({ game, session, hud }) {
     if (phase === 'flight') {
       const event = stepBody(body, hole, dt);
       game.setBallPosition(body.p);
+      if (event === 'hit' && !hitThisShot) {
+        hitThisShot = true;
+        const what = body.lastHit?.label ?? 'something';
+        hud.toast(what === 'tree' ? 'Timber!' : 'Bonk!', what === 'tree' ? 'Straight into a tree' : `Off the ${what.toLowerCase()}`);
+      }
       if (event === 'water' || event === 'oob') {
         game.setBallVisible(false);
         if (event === 'water') hud.toast('Splash!', 'Into the water · 1 penalty stroke');

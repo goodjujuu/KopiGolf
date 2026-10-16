@@ -31,7 +31,9 @@ function islandSurface(hole, x, z) {
 
 function courseSurface(hole, x, z) {
   if (hole.bunkers.some((b) => inEllipse(b, x, z))) return 'bunker';
+  if (hole.islandLand && inEllipse(hole.islandLand, x, z)) return 'fairway';
   if (hole.ponds.some((p) => inEllipse(p, x, z))) return 'water';
+  if (hole.rivers?.some((r) => nearestOnPath(r.points, x, z).dist < r.width / 2)) return 'water';
   if (hole.sea) {
     const d = seaDistance(hole.sea, x, z);
     if (d > 0) return 'water';

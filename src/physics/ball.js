@@ -1,10 +1,12 @@
 import { PHYSICS, SURFACE } from '../config.js';
 import { surfaceAt, groundHeight } from './course.js';
+import { collide } from './collide.js';
 
 // Ball flight, bounce and roll. Plain numbers, no Three.js, so it can be tested on its own.
 //
 // States: 'rest' → 'air' → (bounces) → 'roll' → 'rest'   or   → 'water' / 'holed'
-// stepBody() returns an event when something happens: 'land', 'rest', 'water', 'oob', 'holed'.
+// stepBody() returns an event when something happens: 'land', 'hit', 'rest', 'water', 'oob', 'holed'.
+// After a 'hit', body.lastHit is the collider (its label says what was hit).
 
 const SUBSTEPS = 4;
 const TERMINAL_EVENTS = new Set(['rest', 'water', 'holed', 'oob']);
@@ -18,6 +20,7 @@ export function createBallBody() {
     state: 'rest',
     surface: 'fairway',
     bounces: 0,
+    lastHit: null,
   };
 }
 
@@ -56,7 +59,7 @@ export function stepBody(body, hole, dt) {
   let event = null;
   for (let i = 0; i < SUBSTEPS; i++) {
     const e = substep(body, hole, h);
-    if (e) event = e;
+    if (e && !(e === 'hit' && event && event !== 'hit')) event = e;
     if (TERMINAL_EVENTS.has(event)) break;
   }
   return event;
@@ -73,6 +76,8 @@ function substep(b, hole, dt) {
     const drag = 1 - PHYSICS.airDrag * dt;
     b.v.x *= drag; b.v.y *= drag; b.v.z *= drag;
     b.p.x += b.v.x * dt; b.p.y += b.v.y * dt; b.p.z += b.v.z * dt;
+    const hit = collide(b, hole);
+    if (hit) { b.lastHit = hit; return 'hit'; }
 
     const s = surfaceAt(hole, b.p.x, b.p.z);
     const ground = groundHeight(hole, b.p.x, b.p.z, s) + R;
@@ -121,6 +126,8 @@ function substep(b, hole, dt) {
   b.p.x += b.v.x * dt;
   b.p.z += b.v.z * dt;
   b.p.y = groundHeight(hole, b.p.x, b.p.z) + R;
+  const hit = collide(b, hole);
+  if (hit) { b.lastHit = hit; return 'hit'; }
   return null;
 }
 

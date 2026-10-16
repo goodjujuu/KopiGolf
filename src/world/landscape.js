@@ -3,10 +3,11 @@ import { SURFACE } from '../config.js';
 import { BIOMES } from '../courses/biomes.js';
 import { surfaceAt, groundHeight, GREEN_STRETCH } from '../physics/course.js';
 import { seaDistance, seededRandom } from '../courses/generate.js';
-import { lambert } from './materials.js';
+import { lambert, bakeGeometry } from './materials.js';
 import { buildTrees } from './trees.js';
 import { buildSkyline } from './skyline.js';
 import { buildLandmark } from './landmarks.js';
+import { buildObstacle } from './obstacles.js';
 
 // Builds a World Tour course from its hole data: a vertex-coloured heightfield for the ground,
 // flat overlays for fairway / green / bunkers / ponds / cart path, instanced trees, props,
@@ -46,12 +47,51 @@ export function buildCourse(hole) {
   }
   group.add(buildGreen(hole, biome));
   for (const b of hole.bunkers) group.add(ellipse(b, biome.lip, SURFACE.bunker - 0.006, 0.9), ellipse(b, biome.bunker, SURFACE.bunker, 0));
+  // Ponds and rivers sit just above the fairway (they can cut across it) but under the green.
+  const waterMat = new THREE.MeshLambertMaterial({ color: biome.water, emissive: biome.water, emissiveIntensity: 0.25, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, side: THREE.DoubleSide });
+  const bankMat = overlayMaterial(biome.lip, -2.5);
+  bankMat.side = THREE.DoubleSide;
   for (const p of hole.ponds) {
-    group.add(ellipse(p, biome.lip, 0.012, 1.5));
-    const pond = ellipse(p, biome.water, 0.022, 0, new THREE.MeshLambertMaterial({ color: biome.water, emissive: biome.water, emissiveIntensity: 0.25, polygonOffset: true, polygonOffsetFactor: -2 }));
-    group.add(pond);
+    group.add(ellipse(p, biome.lip, 0.04, 1.5, bankMat));
+    group.add(ellipse(p, biome.water, 0.046, 0, waterMat));
+  }
+  if (hole.islandLand) {
+    group.add(ellipse(hole.islandLand, biome.lip, 0.047, 1.2, overlayMaterial(biome.lip, -3.5)));
+    group.add(ellipse(hole.islandLand, biome.fairway, 0.048, 0, overlayMaterial(biome.fairway, -4)));
   }
   group.add(buildCartPath(hole.cartPath, biome));
+  for (const r of hole.rivers ?? []) {
+    group.add(ribbon(r.points, r.width + 3, 0.04, bankMat));
+    group.add(ribbon(r.points, r.width, 0.046, waterMat));
+  }
+
+  // ---------- city obstacles ----------
+  // Static ones (buses, statues, walls…) are merged into one mesh per material to keep draw
+  // calls low on phones; animated animals stay as their own little rigs.
+  const statics = new THREE.Group();
+  for (const o of hole.obstacles ?? []) {
+    const model = buildObstacle(o);
+    if (!model) continue;
+    const holder = new THREE.Group();
+    holder.position.set(o.x, heightAt(o.x, o.z), o.z);
+    holder.rotation.y = o.yaw;
+    holder.scale.setScalar(o.scale);
+    holder.add(model.group);
+    if (model.update) {
+      group.add(holder);
+      animated.push(model.update);
+    } else {
+      statics.add(holder);
+    }
+  }
+  const merged = mergeByMaterial(statics);
+  group.add(merged);
+  group.traverse((m) => {
+    if (m.isMesh && m.name?.startsWith('obstacle') && m.material?.emissive && m.material.emissiveIntensity > 0.2) {
+      m.userData.dayGlow = m.material.emissiveIntensity * 0.5; // neon still shows by day, brighter at night
+      nightLights.push(m);
+    }
+  });
 
   // ---------- props ----------
   for (const [type, x, z, yawDeg] of hole.props) {
@@ -100,7 +140,7 @@ export function buildCourse(hole) {
       skyline?.setWindowGlow(v);
       for (const o of nightLights) {
         if (o.userData.nightOnly) o.visible = v > 0.5;
-        if (o.material?.emissive) o.material.emissiveIntensity = o.userData.nightOnly ? 0.6 : v * 1.2;
+        if (o.material?.emissive) o.material.emissiveIntensity = o.userData.nightOnly ? 0.6 : Math.max(o.userData.dayGlow ?? 0, v * 1.2);
       }
     },
     dispose() {
@@ -196,10 +236,10 @@ function buildFairway(hole, biome) {
 function buildGreen(hole, biome) {
   const g = new THREE.Group();
   const [px, , pz] = hole.pin;
-  const fringe = new THREE.Mesh(new THREE.CircleGeometry(hole.greenRadius + 1.6, 40).rotateX(-PI / 2), overlayMaterial(biome.fairway, -2));
+  const fringe = new THREE.Mesh(new THREE.CircleGeometry(hole.greenRadius + 1.6, 40).rotateX(-PI / 2), overlayMaterial(biome.fairway, -5));
   fringe.scale.set(GREEN_STRETCH, 1, 1);
   fringe.position.set(px, SURFACE.green - 0.01, pz);
-  const green = new THREE.Mesh(new THREE.CircleGeometry(hole.greenRadius, 40).rotateX(-PI / 2), overlayMaterial(biome.green, -3));
+  const green = new THREE.Mesh(new THREE.CircleGeometry(hole.greenRadius, 40).rotateX(-PI / 2), overlayMaterial(biome.green, -6));
   green.scale.set(GREEN_STRETCH, 1, 1);
   green.position.set(px, SURFACE.green, pz);
   green.receiveShadow = true;
@@ -224,6 +264,59 @@ function ellipse(e, color, y, grow, material) {
   holder.add(m);
   m.receiveShadow = true;
   return holder;
+}
+
+// Bake a group of meshes into one mesh per material.
+function mergeByMaterial(root) {
+  root.updateMatrixWorld(true);
+  const buckets = new Map();
+  root.traverse((m) => {
+    if (!m.isMesh) return;
+    if (!buckets.has(m.material)) buckets.set(m.material, []);
+    buckets.get(m.material).push(m);
+  });
+  const out = new THREE.Group();
+  out.name = 'obstacles';
+  for (const [material, meshes] of buckets) {
+    const geo = bakeGeometry(meshes, (m) => m.matrixWorld);
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.name = 'obstacle-merged';
+    out.add(mesh);
+  }
+  return out;
+}
+
+// A flat strip of the given width following a polyline, with round joints (for rivers and canals).
+function ribbon(points, width, y, material) {
+  const half = width / 2;
+  const positions = [];
+  for (let i = 1; i < points.length; i++) {
+    const [ax, az] = points[i - 1];
+    const [bx, bz] = points[i];
+    const len = Math.hypot(bx - ax, bz - az) || 1;
+    const nx = (-(bz - az) / len) * half;
+    const nz = ((bx - ax) / len) * half;
+    positions.push(
+      ax - nx, y, az - nz, bx + nx, y, bz + nz, bx - nx, y, bz - nz,
+      ax - nx, y, az - nz, ax + nx, y, az + nz, bx + nx, y, bz + nz,
+    );
+  }
+  // Round joints between segments, as fans in the same geometry (one draw call per ribbon).
+  const fan = 14;
+  for (let i = 1; i < points.length - 1; i++) {
+    const [cx, cz] = points[i];
+    for (let k = 0; k < fan; k++) {
+      const a0 = (k / fan) * PI * 2;
+      const a1 = ((k + 1) / fan) * PI * 2;
+      positions.push(cx, y, cz, cx + Math.cos(a1) * half, y, cz + Math.sin(a1) * half, cx + Math.cos(a0) * half, y, cz + Math.sin(a0) * half);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.computeVertexNormals();
+  const strip = new THREE.Mesh(geo, material);
+  strip.receiveShadow = true;
+  return strip;
 }
 
 function buildCartPath(points, biome) {

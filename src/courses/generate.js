@@ -1,4 +1,5 @@
 import { BIOMES, BUILDING_STYLES } from './biomes.js';
+import { OBSTACLES, obstacleRadius } from './obstacles.js';
 
 // Turns a short course spec (city, par, length, shape, hazards, landmarks) into a full hole:
 // fairway, green, bunkers, water, hills, trees, props, skyline. A seeded random generator
@@ -115,7 +116,7 @@ export function generateHole(spec, number) {
     if (i > 0) {
       // Turn at each corner: same way for a dogleg, alternating for an S-bend.
       const dir = spec.shape === 's' && i === 2 ? -turnSign : turnSign;
-      const angle = spec.shape === 'straight' ? R(-6, 6) : R(22, 36);
+      const angle = spec.shape === 'straight' ? R(-6, 6) : spec.sharp ? R(42, 58) : R(24, 38);
       yaw -= dir * angle * DEG; // negative yaw turns right
     } else {
       yaw = R(-4, 4) * DEG;
@@ -133,12 +134,14 @@ export function generateHole(spec, number) {
   const width = spec.par === 3 ? R(24, 28) : R(30, 38);
   const greenRadius = R(12, 15);
   const fairwayStart = spec.par === 3 ? total * 0.55 : 28;
+  // Island greens: the fairway stops short of the water ringing the green.
+  const fairwayEnd = spec.islandGreen ? total - greenRadius - 16 : total - 3;
   const fairwayPoints = [];
-  for (let s = fairwayStart; s < total - 3; s += 12) {
+  for (let s = fairwayStart; s < fairwayEnd; s += 12) {
     const p = pathAt(path, s);
     fairwayPoints.push([p.x, p.z]);
   }
-  fairwayPoints.push([pinPt[0], pinPt[1]]);
+  if (!spec.islandGreen) fairwayPoints.push([pinPt[0], pinPt[1]]);
   // Simplify: keep corners only (fairway is drawn as connected stadium segments).
   const fairway = { points: simplify(fairwayPoints), width };
 
@@ -156,7 +159,23 @@ export function generateHole(spec, number) {
   } else if (water === 'creek') {
     const p = pathAt(path, total * R(0.42, 0.5));
     ponds.push({ x: p.x, z: p.z, rx: width + 90, rz: R(5, 7), yaw: p.yaw });
-  } else if (water === 'sea-left' || water === 'sea-right') {
+  }
+  // Island green: a grassy island (green plus a collar, more of it behind the pin so a decent
+  // shot that releases doesn't trickle off the back) ringed by water.
+  let islandLand = null;
+  if (spec.islandGreen) {
+    const [fx, fz] = forward(endYaw);
+    islandLand = { x: pinPt[0] + fx * 5, z: pinPt[1] + fz * 5, rx: greenRadius * 1.4 + 7, rz: greenRadius + 12, yaw: 0 };
+    ponds.push({ x: islandLand.x, z: islandLand.z, rx: islandLand.rx + 12, rz: islandLand.rz + 13, yaw: 0 });
+  }
+  // Extra ponds beside the landing areas.
+  for (let i = 0; i < (spec.ponds ?? 0); i++) {
+    const p = pathAt(path, total * R(0.3, 0.8));
+    const side = i % 2 ? turnSign : -turnSign;
+    const lat = side * (width / 2 + R(14, 24));
+    ponds.push({ x: p.x + p.right[0] * lat, z: p.z + p.right[1] * lat, rx: R(12, 20), rz: R(18, 32), yaw: p.yaw + R(-0.4, 0.4) });
+  }
+  if (water === 'sea-left' || water === 'sea-right') {
     const side = water === 'sea-left' ? -1 : 1;
     // The coastline runs parallel to the tee–pin line, clear of the widest point of the hole.
     const [rx, rz] = rightOf(axisYaw);
@@ -164,9 +183,26 @@ export function generateHole(spec, number) {
     sea = { x: rx * side * off, z: rz * side * off, nx: rx * side, nz: rz * side, beach: 30 };
   }
 
+  // ---------- rivers and canals (wavy bands of water crossing the hole) ----------
+  const rivers = [];
+  const crossings = spec.river === 'canals' ? [0.3, 0.66] : spec.river === 'cross' ? [R(0.36, 0.55)] : [];
+  for (const at of crossings) {
+    const c = pathAt(path, total * at);
+    const yaw = c.yaw + (rng() < 0.5 ? -1 : 1) * R(55, 80) * DEG;
+    const [fx, fz] = forward(yaw);
+    const [rx, rz] = rightOf(yaw);
+    const amp = spec.river === 'canals' ? 3 : R(10, 18);
+    const points = [];
+    for (let t = -700; t <= 700; t += 35) {
+      const wobble = Math.sin(t / 110 + at * 9) * amp;
+      points.push([round(c.x + fx * t + rx * wobble), round(c.z + fz * t + rz * wobble)]);
+    }
+    rivers.push({ points, width: spec.river === 'canals' ? R(9, 12) : R(13, 19) });
+  }
+
   // ---------- bunkers ----------
   const bunkers = [];
-  const greenside = spec.par === 3 ? 3 : 2 + (rng() < 0.5 ? 1 : 0);
+  const greenside = spec.islandGreen ? 0 : spec.par === 3 ? 3 : 2 + (rng() < 0.5 ? 1 : 0);
   const sides = [70, -70, 130, -130, 180, 35, -35];
   for (let i = 0; i < greenside; i++) {
     const a = endYaw + sides[(i + Math.floor(rng() * 3)) % sides.length] * DEG;
@@ -188,7 +224,7 @@ export function generateHole(spec, number) {
     id: spec.id, number, name: spec.name, city: spec.city, country: spec.country,
     par: spec.par, yards: spec.yards, theme: spec.biome, biome: spec.biome,
     tee: [0, 0, 0], pin: [pinPt[0], 0, pinPt[1]],
-    path, fairway, greenRadius, bunkers, ponds, sea,
+    path, fairway, greenRadius, bunkers, ponds, sea, rivers, islandLand,
     bounds: { x: pathAt(path, total / 2).x, z: pathAt(path, total / 2).z, r: total / 2 + 170 },
     fogScale: 4.5,
   };
@@ -206,6 +242,11 @@ export function generateHole(spec, number) {
     hole.hills.push([round(x), round(z), round(r)]);
   }
 
+  // ---------- city obstacles (things the ball can hit) ----------
+  hole.obstacles = [];
+  hole.colliders = [];
+  placeObstacles(hole, spec, rng, R, total, width, endYaw);
+
   // ---------- trees ----------
   const types = Object.entries(biome.trees);
   const weightSum = types.reduce((a, [, w]) => a + w, 0);
@@ -216,8 +257,11 @@ export function generateHole(spec, number) {
   };
   hole.trees = [];
   const addTree = (x, z, scale) => {
+    if (hole.obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < 6 + obstacleRadius(o.type) * o.scale)) return;
     const type = pickType();
     hole.trees.push([type, round(x), round(z), round(scale, 100), Math.floor(rng() * 8), Math.floor(rng() * 360)]);
+    const tc = TREE_COLLIDERS[type] ?? TREE_COLLIDERS.round;
+    hole.colliders.push({ c: 'circle', x: round(x), z: round(z), r: round(tc.r * scale, 100), h: round(tc.h * scale), y0: 0, e: 0.25, label: 'tree' });
   };
   // Lines of trees down both sides of the hole.
   for (let s = -10; s < total + 30; s += R(9, 15)) {
@@ -313,9 +357,162 @@ function clearOfPlay(hole, x, z, minFromPath) {
   if (nearestOnPath(hole.path, x, z).dist < minFromPath) return false;
   if (Math.hypot(x - hole.pin[0], z - hole.pin[2]) < hole.greenRadius + 12) return false;
   if (hole.ponds.some((p) => inEllipse({ ...p, rx: p.rx + 6, rz: p.rz + 6 }, x, z))) return false;
+  if ((hole.rivers ?? []).some((rv) => nearestOnPath(rv.points, x, z).dist < rv.width / 2 + 5)) return false;
   if (hole.bunkers.some((b) => inEllipse({ ...b, rx: b.rx + 4, rz: b.rz + 4 }, x, z))) return false;
   if (hole.sea && seaDistance(hole.sea, x, z) > -hole.sea.beach - 6) return false;
   return true;
+}
+
+// Collision size of each tree model at scale 1 (trunk plus the dense part of the canopy).
+const TREE_COLLIDERS = {
+  round: { r: 1.8, h: 8 }, blossom: { r: 1.8, h: 8 }, cypress: { r: 1.2, h: 11 },
+  pine: { r: 2, h: 10.5 }, snowpine: { r: 2, h: 10.5 }, palm: { r: 0.45, h: 9 }, cactus: { r: 0.9, h: 4.6 },
+};
+
+// Spread the city's obstacles over the hole: in the landing zones (off the centre line, so a
+// straight shot down the middle is always open), on the approach, around the green and along
+// the edges. Each spot may hold a group (a line of Berlin Wall, a waddle of penguins…).
+function placeObstacles(hole, spec, rng, R, total, width, endYaw) {
+  const types = spec.obstacles ?? [];
+  if (!types.length) return;
+  const slots = [];
+  if (spec.par === 3) {
+    slots.push(['approach', total * R(0.45, 0.7)], ['green'], ['green'], ['edge', total * R(0.3, 0.8)], ['edge', total * R(0.3, 0.8)]);
+  } else {
+    slots.push(['fair', R(170, 205)], ['fair', R(215, 255)], ['edge', R(120, 250)], ['approach', total - R(45, 85)], ['green'], ['green'], ['edge', total * R(0.55, 0.9)]);
+    if (spec.par === 5) slots.push(['fair', R(390, 440)], ['edge', R(360, 470)], ['approach', total - R(95, 130)]);
+  }
+  const tooWet = (x, z, pad) =>
+    hole.ponds.some((p) => inEllipse({ ...p, rx: p.rx + pad, rz: p.rz + pad }, x, z)) ||
+    hole.rivers.some((rv) => nearestOnPath(rv.points, x, z).dist < rv.width / 2 + pad) ||
+    (hole.sea && seaDistance(hole.sea, x, z) > -hole.sea.beach * 0.3);
+  const onGreen = (x, z, pad) => {
+    const gx = (x - hole.pin[0]) / (hole.greenRadius * 1.4 + pad);
+    const gz = (z - hole.pin[2]) / (hole.greenRadius + pad);
+    return gx * gx + gz * gz <= 1;
+  };
+
+  // Doglegs: something tall in the inside corner, on the shortcut line, so you have to play
+  // around the bend (or go over the top of it) instead of cutting straight at the flag.
+  const corner = () => {
+    if (hole.path.length < 3) return false;
+    const type = types.find((t) => OBSTACLES[t]?.big) ?? types.find((t) => !OBSTACLES[t]?.animal) ?? types[0];
+    const def = OBSTACLES[type];
+    const radius = obstacleRadius(type);
+    const group = def.group ?? { count: 1, spread: 0 };
+    const groupReach = radius + group.spread * (group.count - 1) * 0.6;
+    for (let c = 1; c < hole.path.length - 1; c++) {
+      const [cx, cz] = hole.path[c];
+      // Nearest point on the straight tee → pin line to the corner.
+      const [ax, az] = hole.path[0];
+      const [bx, bz] = hole.path[hole.path.length - 1];
+      const L2 = (bx - ax) ** 2 + (bz - az) ** 2 || 1;
+      const t = Math.max(0, Math.min(1, ((cx - ax) * (bx - ax) + (cz - az) * (bz - az)) / L2));
+      const lx = ax + (bx - ax) * t;
+      const lz = az + (bz - az) * t;
+      for (const k of [0.45, 0.6, 0.3, 0.75]) {
+        const x = cx + (lx - cx) * k;
+        const z = cz + (lz - cz) * k;
+        if (nearestOnPath(hole.path, x, z).dist < width / 2 + groupReach + 2) continue;
+        if (Math.hypot(x, z) < 40 || tooWet(x, z, groupReach + 2) || onGreen(x, z, groupReach + 6)) continue;
+        if (hole.obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < groupReach + obstacleRadius(o.type) + 6)) continue;
+        const yaw = Math.atan2(-(bx - ax), -(bz - az)) + Math.PI / 2;
+        addGroup(hole, type, def, x, z, def.group?.layout === 'line' ? yaw : rng() * Math.PI * 2, rng, R);
+        return true;
+      }
+    }
+    return false;
+  };
+  corner();
+
+  const placed = new Set();
+  slots.forEach(([kind, s], i) => {
+    // Rotate through the city's types, but make sure each one shows up before repeating.
+    const type = types.find((t) => !placed.has(t)) ?? types[i % types.length];
+    const def = OBSTACLES[type];
+    if (!def) return;
+    const radius = obstacleRadius(type);
+    const group = def.group ?? { count: 1, spread: 0 };
+    const groupReach = radius + group.spread * (group.count - 1) * 0.6;
+    if (def.big && (kind === 'fair' || kind === 'approach')) kind = 'edge';
+    for (const side of rng() < 0.5 ? [1, -1] : [-1, 1]) {
+      let x;
+      let z;
+      let yaw;
+      if (kind === 'green') {
+        const a = endYaw + side * R(40, 140) * DEG;
+        const d = hole.greenRadius * 1.45 + R(5, 10) + groupReach;
+        const [fx, fz] = forward(a);
+        x = hole.pin[0] + fx * d;
+        z = hole.pin[2] + fz * d;
+        yaw = a;
+      } else {
+        const p = pathAt(hole.path, s);
+        const lat = kind === 'edge' ? side * (width / 2 + R(3, 9) + groupReach)
+          : side * (width * R(0.2, 0.4) + 3 + groupReach * 0.5);
+        x = p.x + p.right[0] * lat;
+        z = p.z + p.right[1] * lat;
+        yaw = p.yaw;
+      }
+      if (Math.hypot(x, z) < 25 || tooWet(x, z, groupReach + 2) || onGreen(x, z, groupReach + 3)) continue;
+      if (nearestOnPath(hole.path, x, z).dist < 3.5 + groupReach * 0.6 && kind !== 'edge') continue;
+      if (hole.obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < groupReach + obstacleRadius(o.type) + 6)) continue;
+      addGroup(hole, type, def, x, z, yaw, rng, R);
+      placed.add(type);
+      return;
+    }
+  });
+  // Anything that didn't find room yet (short holes, island greens): try along the edges.
+  for (const type of types) {
+    if (placed.has(type) || !OBSTACLES[type]) continue;
+    const def = OBSTACLES[type];
+    const group = def.group ?? { count: 1, spread: 0 };
+    const groupReach = obstacleRadius(type) + group.spread * (group.count - 1) * 0.6;
+    for (let tries = 0; tries < 12 && !placed.has(type); tries++) {
+      const p = pathAt(hole.path, total * R(0.25, 0.85));
+      const lat = (rng() < 0.5 ? -1 : 1) * (width / 2 + R(4, 14) + groupReach);
+      const x = p.x + p.right[0] * lat;
+      const z = p.z + p.right[1] * lat;
+      if (Math.hypot(x, z) < 25 || tooWet(x, z, groupReach + 2) || onGreen(x, z, groupReach + 3)) continue;
+      if (hole.obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < groupReach + obstacleRadius(o.type) + 6)) continue;
+      addGroup(hole, type, def, x, z, p.yaw, rng, R);
+      placed.add(type);
+    }
+  }
+}
+
+function addGroup(hole, type, def, x, z, yaw, rng, R) {
+  const g = def.group ?? { count: 1, spread: 0 };
+  const [rx, rz] = rightOf(yaw);
+  for (let k = 0; k < g.count; k++) {
+    let mx = x;
+    let mz = z;
+    if (g.layout === 'line') {
+      const off = (k - (g.count - 1) / 2) * g.spread;
+      mx += rx * off;
+      mz += rz * off;
+    } else if (g.layout === 'ring') {
+      const a = (k / g.count) * Math.PI * 2;
+      mx += Math.cos(a) * g.spread;
+      mz += Math.sin(a) * g.spread;
+    } else if (k > 0) {
+      mx += R(-1, 1) * g.spread;
+      mz += R(-1, 1) * g.spread;
+    }
+    const scale = g.shrink ? 1 - g.shrink * k : 1;
+    const myaw = def.animal ? rng() * Math.PI * 2 : yaw + (g.layout === 'line' ? 0 : R(-0.2, 0.2));
+    if (nearestOnPath(hole.path, mx, mz).dist < 2.5 + obstacleRadius(type) * scale) continue;
+    hole.obstacles.push({ type, x: round(mx, 100), z: round(mz, 100), yaw: round(myaw, 1000), scale: round(scale, 100) });
+    const c = Math.cos(myaw);
+    const s = Math.sin(myaw);
+    for (const col of def.colliders) {
+      const lx = col.x * scale;
+      const lz = col.z * scale;
+      const base = { x: round(mx + lx * c + lz * s, 100), z: round(mz - lx * s + lz * c, 100), h: col.h * scale, y0: (col.y0 ?? 0) * scale, e: def.animal ? 0.3 : 0.45, label: def.label };
+      if (col.c === 'circle') hole.colliders.push({ c: 'circle', r: col.r * scale, ...base });
+      else hole.colliders.push({ c: 'box', w: col.w * scale, d: col.d * scale, yaw: myaw, ...base });
+    }
+  }
 }
 
 function maxLateral(path, axisYaw, side) {
