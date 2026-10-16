@@ -1,4 +1,5 @@
 import { METRES_TO_YARDS, MS_TO_MPH, THEMES, CLUBS, CLUB_ORDER } from './config.js';
+import { clubArt } from './ui/clubArt.js';
 import { obstacleRadius } from './courses/obstacles.js';
 import { pitchOf } from './courses/pitches.js';
 import { holeLength, holeAimYaw } from './courses/catalog.js';
@@ -237,21 +238,13 @@ function buildClubCards(grid) {
     card.innerHTML =
       `<span class="club-card-id" aria-hidden="true">${club.id}</span>` +
       `<span class="club-card-tag" hidden>Best</span>` +
-      CLUB_ART[club.kind] +
+      clubArt(club) +
       `<span class="club-card-yds" aria-hidden="true">${club.yards ? `${club.yards} yds` : 'Putt'}</span>`;
     grid.appendChild(card);
     cards.set(id, card);
   }
   return cards;
 }
-
-// Simple club-head drawings for the cards (viewBox 64 × 48).
-const CLUB_ART = {
-  putter: `<svg class="club-card-art" viewBox="0 0 64 48" aria-hidden="true"><path d="M44 2 41 30" stroke="#1d1f2b" stroke-width="5" stroke-linecap="round"/><rect x="14" y="27" width="34" height="13" rx="2" fill="#eef1f6"/><rect x="14" y="36" width="34" height="4" rx="1" fill="#b9c1cc"/><path d="M47 43c3-2 5 2 8 0s5-2 7 0" stroke="#1d1f2b" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`,
-  wood: `<svg class="club-card-art" viewBox="0 0 64 48" aria-hidden="true"><path d="M50 2 44 22" stroke="#fff3c4" stroke-width="5" stroke-linecap="round"/><path d="M10 30c0-9 13-13 26-12 9 1 13 6 12 12-1 8-11 12-22 12C15 42 10 38 10 30Z" fill="#ffe08a"/><path d="M14 31c6 4 20 5 31 1" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".85"/><path d="M18 24c6-3 15-3 22-1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".6"/></svg>`,
-  iron: `<svg class="club-card-art" viewBox="0 0 64 48" aria-hidden="true"><path d="M52 2 44 20" stroke="#f3f4f8" stroke-width="5" stroke-linecap="round"/><path d="M16 22 46 16c3 0 4 2 3 5l-5 19c-1 2-2 3-5 3H18c-4 0-6-3-5-6l3-15Z" fill="#f3f4f8"/><path d="M20 27h22M19 31h22M18 35h22" stroke="#b7bccb" stroke-width="1.6" stroke-linecap="round"/></svg>`,
-  wedge: `<svg class="club-card-art" viewBox="0 0 64 48" aria-hidden="true"><path d="M53 2 45 18" stroke="#2a2f3a" stroke-width="5" stroke-linecap="round"/><path d="M14 20 47 14c3 0 4 2 3 5l-5 20c-1 3-3 4-6 4H17c-4 0-6-3-5-6l2-17Z" fill="#2a2f3a"/><path d="M19 26h23M18 30h23M17 34h23" stroke="#4a5262" stroke-width="1.6" stroke-linecap="round"/></svg>`,
-};
 
 // Overhead map drawn from the same hole data as the 3D world, rotated so the tee is at the
 // bottom and the pin is at the top. Handles the practice island and World Tour courses.

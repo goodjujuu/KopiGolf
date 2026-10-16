@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { REDUCED_MOTION } from '../config.js';
 import { BALL_RADIUS } from './ball.js';
 import { HEAD_FINISHES } from '../avatar/looks.js';
+import { CLUB_ORDER, CLUBS } from '../config.js';
+import { buildHead, createHeadMaterials, SOLE_Y } from './clubHeads.js';
 
 // The player's club, the game's main sprite.
 //
@@ -14,7 +16,7 @@ import { HEAD_FINISHES } from '../avatar/looks.js';
 //          └ lean  fixed address lean: shaft tilts left and toward the camera
 //             ├ grip   + the player's hands and forearms (gloves / sleeves from the Locker)
 //             ├ shaft
-//             └ head  one per kind (iron, wedge, wood, putter); sole kept flat, face toward the target
+//             └ head  one per club (see clubHeads.js); sole kept flat, face toward the target
 //
 // Swing angle convention (radians):
 //   negative = backswing (head comes back toward the camera and up)
@@ -62,20 +64,22 @@ export function createClub() {
   shaft.position.y = -L * 0.61;
   lean.add(shaft);
 
-  // One head per kind of club; setKind() shows the right one.
-  const heads = {
-    iron: makeHead(new THREE.BoxGeometry(HEAD.w, HEAD.h, HEAD.d), 0x9aa5b1),
-    wedge: makeHead(new THREE.BoxGeometry(0.09, 0.05, 0.03), 0x2e343c),
-    putter: makeHead(new THREE.BoxGeometry(0.12, 0.032, 0.032), 0xd5dbe2),
-    wood: makeHead(new THREE.SphereGeometry(0.05, 14, 10).scale(1.15, 0.5, 0.95), 0x26324a),
-  };
-  for (const h of Object.values(heads)) {
-    h.position.y = -L;
-    h.quaternion.copy(leanQuat).invert(); // cancel the lean so the sole sits flat
-    h.visible = false;
-    lean.add(h);
+  // One head per club (driver, 3 wood, each iron, each wedge, putter), built from the shared
+  // designs so it matches the club picker. setClub() shows the right one.
+  const headMats = createHeadMaterials();
+  const heads = {};
+  for (const id of CLUB_ORDER) {
+    const built = buildHead(id, headMats);
+    if (!built) continue;
+    built.group.position.y = -L;
+    built.group.quaternion.copy(leanQuat).invert(); // cancel the lean so the sole sits flat
+    built.group.visible = false;
+    built.group.name = `head:${id}`;
+    lean.add(built.group);
+    heads[id] = built;
   }
-  heads.iron.visible = true;
+  let current = heads['7i'];
+  current.group.visible = true;
 
   // First-person hands on the grip: lead (left) hand on top, right hand below, forearms
   // continuing up the line of the shaft out of view.
@@ -126,8 +130,9 @@ export function createClub() {
     // Rest the head just behind the ball (toward the player), aimed down the target line.
     address(ballPos, aimYaw, groundY) {
       root.rotation.set(0, aimYaw, 0);
-      offset.set(-0.015, 0, BALL_RADIUS + HEAD.d / 2 + 0.006).applyAxisAngle(UP, aimYaw);
-      root.position.set(ballPos.x + offset.x, groundY + HEAD.h / 2, ballPos.z + offset.z);
+      // Sweet spot right behind the ball; the shaft end (root) sits toward the heel from there.
+      offset.set(-current.sweetX, 0, BALL_RADIUS + HEAD.d / 2 + 0.006).applyAxisAngle(UP, aimYaw);
+      root.position.set(ballPos.x + offset.x, groundY - SOLE_Y, ballPos.z + offset.z);
     },
 
     // Apply the Locker look: shaft, grip, head finish, gloves and sleeves.
@@ -135,10 +140,10 @@ export function createClub() {
       shaft.material.color.set(look.shaftColour);
       grip.material.color.set(look.gripColour);
       const finish = HEAD_FINISHES[look.headFinish] ?? HEAD_FINISHES.chrome;
-      for (const h of Object.values(heads)) {
-        h.material.color.set(finish.hex);
-        h.material.shininess = finish.shine;
-      }
+      headMats.metal.color.set(finish.hex);
+      headMats.metal.shininess = finish.shine;
+      headMats.dark.color.set(finish.hex).multiplyScalar(0.28); // wedges: a dark satin take on the finish
+      headMats.dark.shininess = finish.shine * 0.4;
       skinMat.color.set(look.skin);
       leadHandMat.color.set(look.gloves === 'none' ? look.skin : look.glovesColour);
       trailHandMat.color.set(look.gloves === 'both' ? look.glovesColour : look.skin);
@@ -148,8 +153,12 @@ export function createClub() {
       for (const arm of forearms) arm.material = longSleeves ? sleeveMat : skinMat;
     },
 
-    setKind(kind) {
-      for (const [k, h] of Object.entries(heads)) h.visible = k === kind;
+    // Show the head for a club id ('D', '7i', 'Sw'…). Re-address after this so the sweet spot
+    // lines up with the ball.
+    setClub(id) {
+      const next = heads[id] ?? heads[CLUBS[id]?.kind === 'putter' ? 'P' : '7i'];
+      for (const h of Object.values(heads)) h.group.visible = h === next;
+      current = next;
     },
 
     setSwing(a) { mode = 'manual'; target = a; },
@@ -179,9 +188,4 @@ export function createClub() {
   };
 }
 
-function makeHead(geometry, color) {
-  return new THREE.Mesh(
-    geometry,
-    new THREE.MeshPhongMaterial({ color, specular: 0x99a4ad, shininess: 50, flatShading: true })
-  );
-}
+

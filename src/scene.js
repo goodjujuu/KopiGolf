@@ -231,7 +231,10 @@ export function createGameScene(canvas) {
     setAim,
     setGuide,
     setTimeOfDay,
-    setClubKind(kind) { club.setKind(kind); },
+    setClub(id) {
+      club.setClub(id);
+      if (ball.mesh.visible) club.address(lie, aimYaw, groundY); // keep the sweet spot behind the ball
+    },
     setLook(look) { club.setLook(look); ball.setColour(look.ballColour); },
     beginFlight,
     resize,

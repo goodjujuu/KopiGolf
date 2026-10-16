@@ -125,7 +125,7 @@ export function createGameController({ game, session, hud }) {
     const toPin = distanceToPin(x, z);
     club = suggestClub(Math.hypot(target.x - x, target.z - z), body.surface);
     game.placeAtLie(body.p, aimYaw);
-    game.setClubKind(club.kind);
+    game.setClub(club.id);
     session.set({ club: club.id, suggestedClub: club.id, lieSurface: body.surface, toPin, ballAt: { x, z }, aimYaw });
     updateGuide();
     setPhase('idle');
@@ -152,7 +152,7 @@ export function createGameController({ game, session, hud }) {
   function selectClub(id) {
     if (!CLUBS[id] || (phase !== 'idle')) return;
     club = CLUBS[id];
-    game.setClubKind(club.kind);
+    game.setClub(club.id);
     updateGuide();
     session.set({ club: club.id });
   }
