@@ -1,4 +1,4 @@
-# Island Golf (web) — Step 1: Foundation
+# KopiGolf — Step 1: Foundation
 
 Low-poly 3D golf in the browser, styled after Golf Dreams. Runs on iPhone, Android and desktop.
 This step: project structure, screen scaling, and the idle scene (club waggling at the ball).

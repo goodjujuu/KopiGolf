@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Bundle the game into ONE self-contained HTML file (dist/island-golf.html).
+"""Bundle the game into ONE self-contained HTML file (dist/kopigolf.html).
 
 You don't need this to host the game: index.html + styles.css + src/ work as-is on any static
 host (GitHub Pages, Netlify, Cloudflare Pages). The single file is handy for sharing a quick
 preview link or sending the game as one attachment.
 
-Usage:  python3 build.py            -> dist/island-golf.html  (full page)
-        python3 build.py --fragment -> dist/island-golf.fragment.html (body-only, for embedding)
+Usage:  python3 build.py            -> dist/kopigolf.html  (full page)
+        python3 build.py --fragment -> dist/kopigolf.fragment.html (body-only, for embedding)
 """
 import pathlib
 import re
@@ -61,17 +61,17 @@ def main() -> None:
 
     if fragment:
         out = (
-            '<title>Island Golf</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
+            '<title>KopiGolf</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
             f"{fonts}\n<style>\n{css}</style>\n{body}\n<script type=\"module\">\n{js}\n</script>\n"
         )
-        name = "island-golf.fragment.html"
+        name = "kopigolf.fragment.html"
     else:
         head = html.split("<head>")[1].split('<link rel="preconnect"')[0]
         out = (
             f'<!doctype html>\n<html lang="en">\n<head>{head}{fonts}\n<style>\n{css}</style>\n</head>\n<body>\n'
             f"{body}\n<script type=\"module\">\n{js}\n</script>\n</body>\n</html>\n"
         )
-        name = "island-golf.html"
+        name = "kopigolf.html"
 
     dist = ROOT / "dist"
     dist.mkdir(exist_ok=True)

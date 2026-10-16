@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Island Golf">
-<title>Island Golf</title>
+<meta name="apple-mobile-web-app-title" content="KopiGolf">
+<title>KopiGolf</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;700;800&family=Lilita+One&display=swap">
@@ -17,7 +17,7 @@
 </head>
 <body>
 <!-- BODY START -->
-<main id="stage" aria-label="Island Golf">
+<main id="stage" aria-label="KopiGolf">
   <canvas id="scene" aria-hidden="true"></canvas>
 
   <div class="hud">
@@ -68,7 +68,7 @@
 </main>
 <script>
   // If the 3D engine can't be fetched (offline, blocked CDN), say so instead of spinning forever.
-  window.__igFail = setTimeout(function () {
+  window.__kgFail = setTimeout(function () {
     var l = document.getElementById('loading');
     if (l) { l.classList.add('is-error'); l.querySelector('.loading-text').textContent = "Couldn't load the 3D engine. Check your connection, then reload."; }
   }, 15000);

@@ -44,7 +44,7 @@ for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
 stage.addEventListener('contextmenu', (e) => e.preventDefault());
 
 game.start(() => {
-  clearTimeout(window.__igFail);
+  clearTimeout(window.__kgFail);
   loading.classList.add('is-done');
   setTimeout(() => { loading.hidden = true; }, 600);
 });
