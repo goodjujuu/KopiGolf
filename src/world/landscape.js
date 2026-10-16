@@ -8,6 +8,7 @@ import { buildTrees } from './trees.js';
 import { buildSkyline } from './skyline.js';
 import { buildLandmark } from './landmarks.js';
 import { buildObstacle } from './obstacles.js';
+import { pitchOf, PITCHES, FAIRWAY_SURFACES } from '../courses/pitches.js';
 
 // Builds a World Tour course from its hole data: a vertex-coloured heightfield for the ground,
 // flat overlays for fairway / green / bunkers / ponds / cart path, instanced trees, props,
@@ -16,7 +17,13 @@ import { buildObstacle } from './obstacles.js';
 const PI = Math.PI;
 
 export function buildCourse(hole) {
-  const biome = BIOMES[hole.biome];
+  const pitch = pitchOf(hole);
+  // The pitch can recolour the ground: grey sidewalks for a street course, dunes in the desert…
+  const biome = { ...BIOMES[hole.biome] };
+  if (pitch.rough?.color) {
+    biome.rough = pitch.rough.color;
+    biome.hill = new THREE.Color(pitch.rough.color).multiplyScalar(0.93).getHex();
+  }
   const group = new THREE.Group();
   group.name = `course:${hole.id}`;
   const animated = [];
@@ -36,7 +43,7 @@ export function buildCourse(hole) {
   group.add(buildGround(hole, biome));
 
   // ---------- overlays ----------
-  group.add(buildFairway(hole, biome));
+  group.add(buildFairway(hole, biome, pitch));
   const tee = new THREE.Mesh(new THREE.BoxGeometry(10, 0.1, 7), lambert(biome.tee));
   tee.position.set(hole.tee[0], 0.04, hole.tee[2] + 1.5);
   group.add(tee);
@@ -59,7 +66,7 @@ export function buildCourse(hole) {
     group.add(ellipse(hole.islandLand, biome.lip, 0.047, 1.2, overlayMaterial(biome.lip, -3.5)));
     group.add(ellipse(hole.islandLand, biome.fairway, 0.048, 0, overlayMaterial(biome.fairway, -4)));
   }
-  group.add(buildCartPath(hole.cartPath, biome));
+  if (pitch === PITCHES.grass) group.add(buildCartPath(hole.cartPath, biome));
   for (const r of hole.rivers ?? []) {
     group.add(ribbon(r.points, r.width + 3, 0.04, bankMat));
     group.add(ribbon(r.points, r.width, 0.046, waterMat));
@@ -177,7 +184,7 @@ function buildGround(hole, biome) {
       c.copy(beach);
     } else {
       // Overlays (fairway, green, bunker, pond) sit on flat ground at 0.
-      if (s === 'fairway' || s === 'green' || s === 'bunker' || s === 'water') s = 'rough';
+      if (FAIRWAY_SURFACES.has(s) || s === 'green' || s === 'bunker' || s === 'water') s = 'rough';
       y = groundHeight(hole, x, z, s);
       c.copy(rough).lerp(hill, Math.min(1, y / 14));
     }
@@ -200,10 +207,11 @@ function overlayMaterial(color, offset = -1) {
   return new THREE.MeshLambertMaterial({ color, polygonOffset: true, polygonOffsetFactor: offset, polygonOffsetUnits: offset });
 }
 
-function buildFairway(hole, biome) {
+function buildFairway(hole, biome, pitch) {
   const g = new THREE.Group();
-  const mat = overlayMaterial(biome.fairway, -1);
-  const stripeMat = overlayMaterial(new THREE.Color(biome.fairway).multiplyScalar(0.94).getHex(), -1.5);
+  g.name = 'fairway';
+  const color = pitch.fairway.color ?? biome.fairway;
+  const mat = overlayMaterial(color, -1);
   const { points, width } = hole.fairway;
   const r = width / 2;
   for (let i = 0; i < points.length; i++) {
@@ -221,16 +229,110 @@ function buildFairway(hole, biome) {
     seg.rotation.y = yaw;
     seg.receiveShadow = true;
     g.add(seg);
-    // Mowing stripes across the fairway.
-    for (let d = 6; d < len - 6; d += 16) {
-      const stripe = new THREE.Mesh(new THREE.PlaneGeometry(width * 0.92, 8).rotateX(-PI / 2), stripeMat);
-      const t = d / len;
-      stripe.position.set(px + (x - px) * t, SURFACE.fairway + 0.004, pz + (z - pz) * t);
-      stripe.rotation.y = yaw;
-      g.add(stripe);
-    }
+  }
+  for (const [c, quads] of pitchDecals(hole, pitch, color)) {
+    if (quads.length) g.add(decalMesh(quads, overlayMaterial(c, -1.5)));
   }
   return g;
+}
+
+// Painted / patterned details on the playing strip, as quads in each straight segment's frame:
+// [segIndex, across (u0, u1), along (v0, v1)], or free quads [x, z, yaw, w, l].
+function pitchDecals(hole, pitch, base) {
+  const { points, width } = hole.fairway;
+  const W = width / 2;
+  const shade = (k) => {
+    const ch = (n) => Math.min(255, Math.round(((base >> n) & 255) * k));
+    return (ch(16) << 16) | (ch(8) << 8) | ch(0);
+  };
+  const out = new Map();
+  const add = (c, q) => { if (!out.has(c)) out.set(c, []); out.get(c).push(q); };
+  const rand = seededRandom(`${hole.id}:decals`);
+  let travelled = 0;
+  for (let i = 1; i < points.length; i++) {
+    const [ax, az] = points[i - 1];
+    const [bx, bz] = points[i];
+    const len = Math.hypot(bx - ax, bz - az);
+    const yaw = Math.atan2(-(bx - ax), -(bz - az));
+    const fx = (bx - ax) / len;
+    const fz = (bz - az) / len;
+    // centre of a quad u across, v along this segment
+    const at = (u, v) => [ax + fx * v + Math.cos(yaw) * u, az + fz * v - Math.sin(yaw) * u];
+    const q = (c, u0, u1, v0, v1) => {
+      const v0c = Math.max(0, v0);
+      const v1c = Math.min(len, v1);
+      if (v1c <= v0c) return;
+      const [cx, cz] = at((u0 + u1) / 2, (v0c + v1c) / 2);
+      add(c, [cx, cz, yaw, u1 - u0, v1c - v0c]);
+    };
+    switch (pitch.fairway.deco) {
+      case 'mown':
+        for (let d = 6; d < len - 6; d += 16) q(shade(0.94), -W * 0.92, W * 0.92, d, d + 8);
+        break;
+      case 'street': {
+        for (let d = 0; d < len; d += 7) q(0xf2c21a, -0.35, -0.12, d, d + 3.5); // double yellow, dashed
+        for (let d = 0; d < len; d += 7) q(0xf2c21a, 0.12, 0.35, d, d + 3.5);
+        for (const u of [-W * 0.5, W * 0.5]) for (let d = 3.5; d < len; d += 9) q(0xf4f4f0, u - 0.12, u + 0.12, d, d + 3); // lane lines
+        q(0xf4f4f0, -W + 1.0, -W + 1.3, 0, len); // edge lines
+        q(0xf4f4f0, W - 1.3, W - 1.0, 0, len);
+        q(0xd2cdc4, -W - 1.4, -W, 0, len); // kerbs
+        q(0xd2cdc4, W, W + 1.4, 0, len);
+        // zebra crossings every so often
+        for (let d = 90 - (travelled % 90); d < len - 6; d += 90) {
+          for (let u = -W + 2; u < W - 2; u += 1.8) q(0xf4f4f0, u, u + 0.9, d, d + 4.5);
+        }
+        break;
+      }
+      case 'cobbles':
+        for (let d = 0; d < len; d += 1.6) q(shade(0.86), -W, W, d, d + 0.14);
+        for (let u = -W; u <= W; u += 1.6) q(shade(0.86), u, u + 0.14, 0, len);
+        for (let d = 20 - (travelled % 40); d < len; d += 40) q(shade(0.78), -W, W, d, d + 1.2); // granite bands
+        break;
+      case 'ripples':
+        for (let d = 0; d < len; d += 4 + rand() * 3) q(shade(0.93), -W, W, d, d + 1.2);
+        break;
+      case 'corduroy':
+        for (let u = -W; u < W; u += 1.2) q(shade(0.95), u, u + 0.5, 0, len);
+        q(0xff7a1a, -W - 0.8, -W - 0.5, 0, len); // piste edge ropes
+        q(0xff7a1a, W + 0.5, W + 0.8, 0, len);
+        break;
+      case 'rink':
+        for (let d = 60 - (travelled % 60); d < len; d += 60) q(0x2a67d6, -W, W, d, d + 0.6); // blue lines
+        q(0xd7262c, -0.3, 0.3, 0, len); // red centre line
+        q(0xf6fbff, -W - 1.0, -W, 0, len); // boards
+        q(0xf6fbff, W, W + 1.0, 0, len);
+        for (let n = 0; n < len / 6; n++) { // skate scratches
+          const [cx, cz] = at((rand() - 0.5) * width * 0.9, rand() * len);
+          add(0xeef8fd, [cx, cz, yaw + (rand() - 0.5) * 1.2, 0.12, 3 + rand() * 7]);
+        }
+        break;
+      case 'raked':
+        for (let u = -W; u < W; u += 0.8) q(shade(0.88), u, u + 0.18, 0, len);
+        break;
+      default:
+    }
+    travelled += len;
+  }
+  return out;
+}
+
+// One mesh from many flat quads [x, z, yaw, w, l] lying just above the fairway.
+function decalMesh(quads, material) {
+  const pos = new Float32Array(quads.length * 18);
+  const y = SURFACE.fairway + 0.004;
+  quads.forEach(([x, z, yaw, w, l], i) => {
+    const c = Math.cos(yaw);
+    const s = Math.sin(yaw);
+    const corner = (u, v) => [x + c * u - s * v, z - s * u - c * v]; // u across, v along (forward = −z at yaw 0)
+    const p = [corner(-w / 2, -l / 2), corner(w / 2, -l / 2), corner(w / 2, l / 2), corner(-w / 2, l / 2)];
+    const tri = [p[0], p[1], p[2], p[0], p[2], p[3]];
+    tri.forEach(([px, pz], k) => pos.set([px, y, pz], i * 18 + k * 3));
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.computeVertexNormals();
+  material.side = THREE.DoubleSide;
+  return new THREE.Mesh(geo, material);
 }
 
 function buildGreen(hole, biome) {

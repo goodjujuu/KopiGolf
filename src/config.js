@@ -133,6 +133,15 @@ export const PHYSICS = {
     bunker: { bounce: 0.05, keep: 0.2, roll: 1.8 },
     snow: { bounce: 0.1, keep: 0.3, roll: 1.1 },
     oob: { bounce: 0.2, keep: 0.4, roll: 0.6 },
+    // City pitches (courses/pitches.js)
+    asphalt: { bounce: 0.4, keep: 0.66, roll: 0.27 }, // hard and fast: big bounces, long run-out
+    pavement: { bounce: 0.38, keep: 0.64, roll: 0.3 },
+    cobbles: { bounce: 0.36, keep: 0.62, roll: 0.3 },
+    hardpan: { bounce: 0.32, keep: 0.62, roll: 0.3 },
+    beach: { bounce: 0.14, keep: 0.42, roll: 0.75 }, // firm wet sand: lands soft
+    piste: { bounce: 0.1, keep: 0.55, roll: 0.22 }, // soft landing, then it slides
+    ice: { bounce: 0.2, keep: 0.62, roll: 0.26 }, // skates on and on
+    gravel: { bounce: 0.12, keep: 0.38, roll: 0.95 }, // stops dead
   },
 };
 

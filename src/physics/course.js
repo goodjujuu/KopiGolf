@@ -3,6 +3,7 @@ import { holeLength, holeAimYaw } from '../courses/catalog.js';
 import { BIOMES } from '../courses/biomes.js';
 import { nearestOnPath, inEllipse, seaDistance } from '../courses/generate.js';
 import { terrainHeight } from './terrain.js';
+import { pitchOf, FAIRWAY_SURFACES } from '../courses/pitches.js';
 
 // What the ball is sitting on, worked out from the same hole data that draws the 3D world.
 // Two kinds of hole: the practice island (hole.island) and World Tour courses (hole.path).
@@ -41,11 +42,13 @@ function courseSurface(hole, x, z) {
   }
   if (Math.hypot(x - hole.bounds.x, z - hole.bounds.z) > hole.bounds.r) return 'oob';
   if (Math.hypot(x - hole.tee[0], z - hole.tee[2]) < TEE_BOX) return 'fairway';
-  if (nearestOnPath(hole.fairway.points, x, z).dist <= hole.fairway.width / 2) return 'fairway';
-  return BIOMES[hole.biome]?.roughSurface ?? 'rough';
+  const pitch = pitchOf(hole);
+  if (nearestOnPath(hole.fairway.points, x, z).dist <= hole.fairway.width / 2) return pitch.fairway.surface;
+  return pitch.rough?.surface ?? BIOMES[hole.biome]?.roughSurface ?? 'rough';
 }
 
 export function groundHeight(hole, x, z, surface = surfaceAt(hole, x, z)) {
+  if (surface !== 'fairway' && FAIRWAY_SURFACES.has(surface)) return SURFACE.fairway;
   switch (surface) {
     case 'green': return SURFACE.green;
     case 'fairway': return SURFACE.fairway;

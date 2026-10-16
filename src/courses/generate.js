@@ -222,7 +222,7 @@ export function generateHole(spec, number) {
 
   const hole = {
     id: spec.id, number, name: spec.name, city: spec.city, country: spec.country,
-    par: spec.par, yards: spec.yards, theme: spec.biome, biome: spec.biome,
+    par: spec.par, yards: spec.yards, theme: spec.biome, biome: spec.biome, pitch: spec.pitch ?? 'grass',
     tee: [0, 0, 0], pin: [pinPt[0], 0, pinPt[1]],
     path, fairway, greenRadius, bunkers, ponds, sea, rivers, islandLand,
     bounds: { x: pathAt(path, total / 2).x, z: pathAt(path, total / 2).z, r: total / 2 + 170 },
@@ -375,13 +375,16 @@ const TREE_COLLIDERS = {
 function placeObstacles(hole, spec, rng, R, total, width, endYaw) {
   const types = spec.obstacles ?? [];
   if (!types.length) return;
+  // Spots down the hole: obstacles out on the fairway itself (alternating sides, so there's
+  // always a way through), along the edges, on the approach and right around the green.
   const slots = [];
-  if (spec.par === 3) {
-    slots.push(['approach', total * R(0.45, 0.7)], ['green'], ['green'], ['edge', total * R(0.3, 0.8)], ['edge', total * R(0.3, 0.8)]);
-  } else {
-    slots.push(['fair', R(170, 205)], ['fair', R(215, 255)], ['edge', R(120, 250)], ['approach', total - R(45, 85)], ['green'], ['green'], ['edge', total * R(0.55, 0.9)]);
-    if (spec.par === 5) slots.push(['fair', R(390, 440)], ['edge', R(360, 470)], ['approach', total - R(95, 130)]);
+  const startS = spec.par === 3 ? total * 0.3 : 110;
+  const step = spec.par === 3 ? 22 : 34;
+  let k = 0;
+  for (let s = startS; s < total - 35; s += step + R(-6, 6), k++) {
+    slots.push([k % 3 === 2 ? 'edge' : 'fair', s]);
   }
+  slots.push(['approach', total - R(30, 45)], ['green'], ['green'], ['green'], ['edge', total * R(0.4, 0.8)]);
   const tooWet = (x, z, pad) =>
     hole.ponds.some((p) => inEllipse({ ...p, rx: p.rx + pad, rz: p.rz + pad }, x, z)) ||
     hole.rivers.some((rv) => nearestOnPath(rv.points, x, z).dist < rv.width / 2 + pad) ||
@@ -428,7 +431,9 @@ function placeObstacles(hole, spec, rng, R, total, width, endYaw) {
   const placed = new Set();
   slots.forEach(([kind, s], i) => {
     // Rotate through the city's types, but make sure each one shows up before repeating.
-    const type = types.find((t) => !placed.has(t)) ?? types[i % types.length];
+    const wantSmall = kind === 'fair' || kind === 'approach' || kind === 'green';
+    const pool = wantSmall && types.some((t) => !OBSTACLES[t]?.big) ? types.filter((t) => !OBSTACLES[t]?.big) : types;
+    const type = types.find((t) => !placed.has(t) && pool.includes(t)) ?? pool[i % pool.length];
     const def = OBSTACLES[type];
     if (!def) return;
     const radius = obstacleRadius(type);
@@ -440,8 +445,8 @@ function placeObstacles(hole, spec, rng, R, total, width, endYaw) {
       let z;
       let yaw;
       if (kind === 'green') {
-        const a = endYaw + side * R(40, 140) * DEG;
-        const d = hole.greenRadius * 1.45 + R(5, 10) + groupReach;
+        const a = endYaw + side * R(35, 160) * DEG;
+        const d = hole.greenRadius * 1.15 + R(3, 6) + groupReach;
         const [fx, fz] = forward(a);
         x = hole.pin[0] + fx * d;
         z = hole.pin[2] + fz * d;
@@ -454,7 +459,7 @@ function placeObstacles(hole, spec, rng, R, total, width, endYaw) {
         z = p.z + p.right[1] * lat;
         yaw = p.yaw;
       }
-      if (Math.hypot(x, z) < 25 || tooWet(x, z, groupReach + 2) || onGreen(x, z, groupReach + 3)) continue;
+      if (Math.hypot(x, z) < 25 || tooWet(x, z, groupReach + 2) || onGreen(x, z, kind === 'green' ? groupReach - 2 : groupReach + 3)) continue;
       if (nearestOnPath(hole.path, x, z).dist < 3.5 + groupReach * 0.6 && kind !== 'edge') continue;
       if (hole.obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < groupReach + obstacleRadius(o.type) + 6)) continue;
       addGroup(hole, type, def, x, z, yaw, rng, R);
@@ -462,6 +467,27 @@ function placeObstacles(hole, spec, rng, R, total, width, endYaw) {
       return;
     }
   });
+  // Top up to at least 10 spots on every hole.
+  let spots = new Set(hole.obstacles.map((o) => o.spot)).size;
+  for (let tries = 0; spots < 10 && tries < 60; tries++) {
+    const type = types[tries % types.length];
+    const def = OBSTACLES[type];
+    if (!def) continue;
+    const group = def.group ?? { count: 1, spread: 0 };
+    const groupReach = obstacleRadius(type) + group.spread * (group.count - 1) * 0.6;
+    const p = pathAt(hole.path, total * R(0.2, 0.92));
+    const inside = !def.big && rng() < 0.6;
+    const side = rng() < 0.5 ? -1 : 1;
+    const lat = side * (inside ? width * R(0.22, 0.42) + 3 + groupReach * 0.5 : width / 2 + R(3, 12) + groupReach);
+    const x = p.x + p.right[0] * lat;
+    const z = p.z + p.right[1] * lat;
+    if (Math.hypot(x, z) < 25 || tooWet(x, z, groupReach + 2) || onGreen(x, z, groupReach + 3)) continue;
+    if (nearestOnPath(hole.path, x, z).dist < 3.5 + groupReach * 0.6) continue;
+    if (hole.obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < groupReach + obstacleRadius(o.type) + 5)) continue;
+    addGroup(hole, type, def, x, z, p.yaw, rng, R);
+    placed.add(type);
+    spots = new Set(hole.obstacles.map((o) => o.spot)).size;
+  }
   // Anything that didn't find room yet (short holes, island greens): try along the edges.
   for (const type of types) {
     if (placed.has(type) || !OBSTACLES[type]) continue;
@@ -483,6 +509,7 @@ function placeObstacles(hole, spec, rng, R, total, width, endYaw) {
 
 function addGroup(hole, type, def, x, z, yaw, rng, R) {
   const g = def.group ?? { count: 1, spread: 0 };
+  const spot = (hole.spotCount = (hole.spotCount ?? 0) + 1);
   const [rx, rz] = rightOf(yaw);
   for (let k = 0; k < g.count; k++) {
     let mx = x;
@@ -502,7 +529,7 @@ function addGroup(hole, type, def, x, z, yaw, rng, R) {
     const scale = g.shrink ? 1 - g.shrink * k : 1;
     const myaw = def.animal ? rng() * Math.PI * 2 : yaw + (g.layout === 'line' ? 0 : R(-0.2, 0.2));
     if (nearestOnPath(hole.path, mx, mz).dist < 2.5 + obstacleRadius(type) * scale) continue;
-    hole.obstacles.push({ type, x: round(mx, 100), z: round(mz, 100), yaw: round(myaw, 1000), scale: round(scale, 100) });
+    hole.obstacles.push({ type, spot, x: round(mx, 100), z: round(mz, 100), yaw: round(myaw, 1000), scale: round(scale, 100) });
     const c = Math.cos(myaw);
     const s = Math.sin(myaw);
     for (const col of def.colliders) {

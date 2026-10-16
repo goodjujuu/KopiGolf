@@ -1,4 +1,5 @@
 import { CLUBS, CLUB_ORDER, FULL_BACKSWING, SWING, PHYSICS, WIND_LEVELS, DEG, METRES_TO_YARDS, clamp } from '../config.js';
+import { pitchOf } from '../courses/pitches.js';
 import { createBallBody, placeBody, launchBody, stepBody, planShot, predictFlight } from '../physics/ball.js';
 import { nearestOnPath, pathAt, pathLength } from '../courses/generate.js';
 import { surfaceAt } from '../physics/course.js';
@@ -46,16 +47,24 @@ export function suggestClub(distanceMetres, surface) {
 // the fairway (so doglegs aim around the corner, not over the trees).
 const REACH = 235;  // metres: go for the pin from closer than this
 const LAYUP = 215;  // metres: how far down the fairway to lay up
+const RUN_OUT = { asphalt: 65, ice: 55, piste: 45, cobbles: 45, hardpan: 40, beach: 20, gravel: 15 };
+
 export function aimTarget(hole, x, z) {
   const pin = { x: hole.pin[0], z: hole.pin[2] };
   if (!hole.path || Math.hypot(pin.x - x, pin.z - z) <= REACH) return pin;
   const total = pathLength(hole.path);
   const { s } = nearestOnPath(hole.path, x, z);
-  // Pull the lay-up back until the landing zone (and the roll after it) is dry.
+  // Pull the lay-up back until the landing zone, and the run-out after it, is dry. Fast pitches
+  // (streets, ice, pistes) run further, so they need more room.
+  const runOut = RUN_OUT[pitchOf(hole).fairway.surface] ?? 35;
   const wet = (at) => {
-    for (let d = -10; d <= 35; d += 5) {
-      const p = pathAt(hole.path, Math.min(total, at + d));
-      const surf = surfaceAt(hole, p.x, p.z);
+    const t = pathAt(hole.path, at);
+    const dx = t.x - x;
+    const dz = t.z - z;
+    const len = Math.hypot(dx, dz) || 1;
+    for (let d = -10; d <= runOut; d += 5) {
+      // along the ball's straight line (it doesn't follow the bend once it's rolling)
+      const surf = surfaceAt(hole, t.x + (dx / len) * d, t.z + (dz / len) * d);
       if (surf === 'water' || surf === 'oob') return true;
     }
     return false;

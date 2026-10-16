@@ -364,6 +364,164 @@ const MODELS = {
     const phase = phaseOf(o);
     return { group: g, update: (t) => { lift.position.y = Math.sin(t * 0.5 + phase) * 0.25; lift.rotation.y = Math.sin(t * 0.15 + phase) * 0.2; } };
   },
+  car(o) {
+    const c = pick(o, [0xd7262c, 0x2a67d6, 0xf5f5f5, 0x1b1b1b, 0x9aa3ad, 0x2fa65a, 0xf2a71b]);
+    const g = group(
+      box(1.9, 0.75, 4.4, c, 0, 0.3),
+      box(1.7, 0.6, 2.3, c, 0, 1.05, -0.25),
+      box(1.74, 0.42, 2.1, 0x2a3440, 0, 1.12, -0.25),
+      box(1.92, 0.1, 4.42, 0x222222, 0, 0.32),
+      box(0.4, 0.15, 0.05, 0xfff6c0, -0.6, 0.75, 2.21, glow(0xfff6c0, 0.3)),
+      box(0.4, 0.15, 0.05, 0xfff6c0, 0.6, 0.75, 2.21, glow(0xfff6c0, 0.3)),
+      box(0.4, 0.15, 0.05, 0xd21f1f, -0.6, 0.75, -2.21),
+      box(0.4, 0.15, 0.05, 0xd21f1f, 0.6, 0.75, -2.21),
+    );
+    for (const z of [-1.4, 1.4]) g.add(wheel(0.36, 1.94, 0, 0.36, z));
+    return { group: g };
+  },
+  trafficCone() {
+    const g = group(
+      box(0.5, 0.05, 0.5, 0x1b1b1b),
+      cone(0.22, 0.7, 0xff6a1a, 0, 0.05, 0, 10),
+      cyl(0.13, 0.16, 0.12, 0xffffff, 0, 0.32, 0, 10),
+    );
+    return { group: g };
+  },
+  hydrant(o) {
+    const c = pick(o, [0xd7262c, 0xf2c21a]);
+    const g = group(
+      cyl(0.2, 0.24, 0.6, c, 0, 0, 0, 10),
+      ball(0.2, c, 0, 0.62, 0, 1, 0.8, 1),
+      cyl(0.05, 0.05, 0.12, c, 0, 0.78, 0, 6),
+      cyl(0.09, 0.09, 0.5, 0xc0c0c0, 0, 0.38, 0, 8),
+    );
+    g.children[3].rotation.z = PI / 2;
+    return { group: g };
+  },
+  planter(o) {
+    const flowers = [pick(o, [0xf2483f, 0xf6c21a, 0xff7ab8, 0xb44dff]), pick(o, [0xffffff, 0xf2483f, 0xff9a2e], 1)];
+    const g = group(
+      box(2.6, 0.75, 0.9, 0x8f8a80),
+      box(2.4, 0.15, 0.7, 0x5a3e2a, 0, 0.72),
+    );
+    for (let i = 0; i < 6; i++) g.add(ball(0.24, i < 3 ? 0x4f8a2e : flowers[i % 2], -1 + (i % 6) * 0.4, 0.95 + (i % 2) * 0.08, (i % 2 ? 0.15 : -0.15), 1, 0.8, 1));
+    return { group: g };
+  },
+  bench() {
+    const wood = 0x8a5a32;
+    const g = group(
+      box(1.9, 0.08, 0.5, wood, 0, 0.45, 0.1),
+      box(1.9, 0.4, 0.06, wood, 0, 0.6, -0.2),
+      box(0.08, 0.45, 0.6, 0x2a2a2a, -0.85, 0, 0),
+      box(0.08, 0.45, 0.6, 0x2a2a2a, 0.85, 0, 0),
+    );
+    return { group: g };
+  },
+  lifeguardTower() {
+    const g = group(
+      box(2.6, 1.4, 2.6, 0xf6c21a, 0, 2.2),
+      box(2.8, 0.15, 2.8, 0xd7262c, 0, 3.6),
+      cone(1.9, 0.5, 0xd7262c, 0, 3.7, 0, 4),
+      box(2.0, 0.6, 0.05, 0x2a3440, 0, 2.7, 1.31),
+      box(1.2, 0.18, 0.06, 0xd7262c, 0, 2.35, 1.33),
+    );
+    g.children[2].rotation.y = PI / 4;
+    for (const [x, z] of [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.1], [1.1, 1.1]]) g.add(box(0.15, 2.2, 0.15, 0xf2efe8, x, 0, z));
+    const ramp = box(0.9, 0.08, 3, 0xd8c7a0, 0, 1.0, 2.4);
+    ramp.rotation.x = 0.6;
+    g.add(ramp);
+    return { group: g };
+  },
+  sandcastle() {
+    const s = 0xe6c98a;
+    const g = group(
+      cyl(1.3, 1.4, 0.6, s, 0, 0, 0, 10),
+      box(1.4, 0.6, 1.4, s, 0, 0.6),
+      cyl(0.35, 0.4, 1.0, s, -0.75, 0.6, -0.75, 8),
+      cyl(0.35, 0.4, 1.0, s, 0.75, 0.6, -0.75, 8),
+      cyl(0.35, 0.4, 1.0, s, -0.75, 0.6, 0.75, 8),
+      cyl(0.35, 0.4, 1.0, s, 0.75, 0.6, 0.75, 8),
+      cone(0.4, 0.4, s, 0, 1.2, 0, 8),
+      box(0.03, 0.4, 0.03, 0x8a6a42, 0, 1.4, 0),
+      box(0.3, 0.18, 0.02, 0xf2483f, 0.15, 1.65, 0),
+    );
+    return { group: g };
+  },
+  volleyballNet() {
+    const g = group(
+      cyl(0.08, 0.08, 2.5, 0xeeeeee, -4.5),
+      cyl(0.08, 0.08, 2.5, 0xeeeeee, 4.5),
+      box(9, 0.08, 0.04, 0xffffff, 0, 2.42),
+      box(9, 0.06, 0.04, 0xffffff, 0, 1.62),
+    );
+    const net = new THREE.Mesh(new THREE.PlaneGeometry(9, 0.8), new THREE.MeshLambertMaterial({ color: 0x222222, transparent: true, opacity: 0.45, side: THREE.DoubleSide }));
+    net.position.y = 2.05;
+    g.add(net, ball(0.11, 0xf6c21a, 1.2, 0.11, 1.5));
+    return { group: g };
+  },
+  slalomGate(o) {
+    const c = pick(o, [0xd7262c, 0x2a67d6]);
+    const g = group(
+      cyl(0.03, 0.03, 1.9, c, -2),
+      cyl(0.03, 0.03, 1.9, c, 2),
+      box(4, 0.6, 0.04, c, 0, 1.25),
+      box(1.6, 0.3, 0.05, 0xffffff, 0, 1.4),
+    );
+    return { group: g };
+  },
+  snowCannon() {
+    const g = group(
+      box(1.4, 0.3, 1.2, 0x555b62),
+      cyl(0.15, 0.2, 2.2, 0x6b7680, 0, 0.3, 0, 8),
+    );
+    const barrel = cyl(0.55, 0.65, 1.2, 0xf2c21a, 0, 0, 0, 12);
+    barrel.position.set(0, 2.8, 0.2);
+    barrel.rotation.x = 1.0;
+    g.add(barrel);
+    const spray = new THREE.Mesh(new THREE.ConeGeometry(1.2, 4, 10, 1, true), new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
+    spray.position.set(0, 4.3, 2.4);
+    spray.rotation.x = -2.1;
+    g.add(spray);
+    return { group: g };
+  },
+  iceHut(o) {
+    const c = pick(o, [0xd7262c, 0x2a67d6, 0x2fa65a, 0xf2a71b]);
+    const g = group(
+      box(2.6, 2.2, 2.8, c),
+      box(0.8, 1.6, 0.05, 0x3a2a20, 0, 0, 1.41),
+      box(0.6, 0.5, 0.05, 0xffd27a, 0.8, 1.2, 1.41, glow(0xffb84a, 0.4)),
+      box(0.25, 0.9, 0.25, 0x555555, 0.8, 2.6, -0.8),
+    );
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, 3.0, 3), lambert(0xf4f8fb));
+    roof.rotation.x = -PI / 2;
+    roof.scale.z = 0.35;
+    roof.position.y = 2.2 + 1.75 * 0.5 * 0.35;
+    g.add(roof);
+    return { group: g };
+  },
+  hockeyNet() {
+    const red = 0xd7262c;
+    const g = group(
+      cyl(0.04, 0.04, 1.1, red, -0.9, 0, 0.55, 6),
+      cyl(0.04, 0.04, 1.1, red, 0.9, 0, 0.55, 6),
+      box(1.85, 0.08, 0.08, red, 0, 1.06, 0.55),
+      box(1.85, 0.05, 1.2, 0xeeeeee, 0, 0),
+    );
+    const net = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.4), new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, side: THREE.DoubleSide }));
+    net.position.set(0, 0.55, 0);
+    net.rotation.x = 0.9;
+    g.add(net);
+    return { group: g };
+  },
+  rock(o) {
+    const c = pick(o, [0x8f8a80, 0x9b8b74, 0x7d7a74, 0xb09a7a]);
+    const r = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 0), lambert(c));
+    r.scale.set(1.1, 0.95, 0.9);
+    r.position.y = 1.1;
+    r.rotation.set(0.3, pick(o, [0, 1, 2]), 0.2);
+    const g = group(r, ball(0.5, 0x6a7a4a, 0.4, 2.0, 0.2, 1.4, 0.35, 1.2));
+    return { group: g };
+  },
   // ----- statues, ruins, buildings -----
   merlion() {
     const white = 0xf1efe8;
@@ -792,6 +950,20 @@ const MODELS = {
     head.userData.keep = true;
     const phase = phaseOf(o);
     return { group: g, update: (t) => { head.position.z = 0.7 + Math.sin(t * 0.5 + phase) * 0.05; } };
+  },
+  pigeon(o) {
+    const c = pick(o, [0x8a8f9a, 0x6f7480, 0xb0b4bc]);
+    const g = group(
+      ball(0.12, c, 0, 0.15, 0, 0.9, 0.8, 1.3),
+      box(0.12, 0.02, 0.18, 0x5a5f6a, 0, 0.14, -0.2),
+    );
+    const head = new THREE.Group();
+    head.position.set(0, 0.24, 0.1);
+    head.add(ball(0.065, 0x5f6a7a), cone(0.02, 0.06, 0x333333, 0, -0.01, 0.07, 4));
+    head.children[1].rotation.x = PI / 2;
+    g.add(head);
+    const phase = phaseOf(o);
+    return { group: g, update: (t) => { head.rotation.x = Math.max(0, Math.sin(t * 4 + phase)) * 0.7; g.rotation.y = Math.sin(t * 0.5 + phase) * 1.2; } };
   },
   peacock(o) {
     const g = group(

@@ -30,6 +30,19 @@ export const OBSTACLES = {
   beachUmbrella: { label: 'Beach umbrellas', colliders: [circle(0.12, 2.5), circle(1.4, 2.6, 0, 0, 2.0)], group: { count: 3, spread: 5 } },
   footballGoal: { label: 'Football goal', colliders: [circle(0.12, 2.44, -3.66), circle(0.12, 2.44, 3.66), box(7.4, 0.15, 0.15, 0, 0, 2.32)] },
   hotAirBalloon: { label: 'Hot-air balloon', colliders: [circle(1.2, 15.5, 0, 0, 14), circle(5, 26, 0, 0, 17)] },
+  car: { label: 'Parked car', colliders: [box(1.9, 4.4, 1.5)], group: { count: 2, spread: 7 } },
+  trafficCone: { label: 'Traffic cones', colliders: [circle(0.25, 0.75)], group: { count: 5, spread: 2.2, layout: 'line' } },
+  hydrant: { label: 'Fire hydrant', colliders: [circle(0.28, 0.85)] },
+  planter: { label: 'Flower planter', colliders: [box(2.6, 1.2, 0.9)], group: { count: 2, spread: 5 } },
+  bench: { label: 'Park bench', colliders: [box(1.9, 0.7, 0.9)], group: { count: 2, spread: 4, layout: 'line' } },
+  lifeguardTower: { label: 'Lifeguard tower', colliders: [box(2.6, 2.6, 4.2)], big: true },
+  sandcastle: { label: 'Sandcastle', colliders: [circle(1.4, 1.7)] },
+  volleyballNet: { label: 'Volleyball net', colliders: [circle(0.1, 2.5, -4.5), circle(0.1, 2.5, 4.5), box(9, 0.1, 0.9, 0, 0, 1.6)] },
+  slalomGate: { label: 'Slalom gate', colliders: [circle(0.06, 1.9, -2), circle(0.06, 1.9, 2), box(4, 0.08, 0.6, 0, 0, 1.25)] },
+  snowCannon: { label: 'Snow cannon', colliders: [circle(0.9, 3.6)] },
+  iceHut: { label: 'Ice-fishing hut', colliders: [box(2.6, 3, 2.8)] },
+  hockeyNet: { label: 'Hockey net', colliders: [box(1.85, 1.1, 1.2)], group: { count: 2, spread: 10, layout: 'line' } },
+  rock: { label: 'Boulders', colliders: [circle(1.5, 2.1)], group: { count: 3, spread: 4, shrink: 0.25 } },
   // ----- statues, ruins, buildings -----
   merlion: { label: 'Merlion', colliders: [circle(2.4, 8.6)], big: true },
   matryoshka: { label: 'Giant matryoshka', colliders: [circle(1.5, 4.4)], group: { count: 3, spread: 4, layout: 'line', shrink: 0.25 } },
@@ -65,6 +78,7 @@ export const OBSTACLES = {
   sealion: { label: 'Sea lions', colliders: [circle(1, 0.9)], animal: true, group: { count: 3, spread: 5 } },
   monkey: { label: 'Monkeys', colliders: [circle(0.4, 0.8)], animal: true, group: { count: 3, spread: 4 } },
   turtle: { label: 'Sea turtles', colliders: [circle(0.6, 0.4)], animal: true, group: { count: 2, spread: 4 } },
+  pigeon: { label: 'Pigeons', colliders: [circle(0.15, 0.3)], animal: true, group: { count: 5, spread: 2.5 } },
   peacock: { label: 'Peacocks', colliders: [circle(0.5, 1.2)], animal: true, group: { count: 2, spread: 4 } },
 };
 

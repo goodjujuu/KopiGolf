@@ -1,5 +1,6 @@
 import { METRES_TO_YARDS, MS_TO_MPH, THEMES, CLUBS, CLUB_ORDER } from './config.js';
 import { obstacleRadius } from './courses/obstacles.js';
+import { pitchOf } from './courses/pitches.js';
 import { holeLength, holeAimYaw } from './courses/catalog.js';
 import { hillFootprint } from './physics/terrain.js';
 import { BIOMES } from './courses/biomes.js';
@@ -265,6 +266,11 @@ function drawMap(canvas, hole, ballAt) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const theme = hole.island ? THEMES[hole.theme] : { ...BIOMES[hole.biome], foliageAlt: 0x3f6a2e, sand: BIOMES[hole.biome].beach, flag: 0xf2483f };
+  if (!hole.island) {
+    const pitch = pitchOf(hole);
+    if (pitch.fairway.color) theme.fairway = pitch.fairway.color;
+    if (pitch.rough?.color) { theme.rough = pitch.rough.color; theme.hill = pitch.rough.color; }
+  }
   const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
 
   // Local frame: u = right of the tee–pin line, v = distance down it.

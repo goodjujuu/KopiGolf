@@ -20,6 +20,7 @@ MODULES = [
     "src/config.js",
     "src/state.js",
     "src/courses/biomes.js",
+    "src/courses/pitches.js",
     "src/courses/obstacles.js",
     "src/courses/generate.js",
     "src/courses/practice.js",
