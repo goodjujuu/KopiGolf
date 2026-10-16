@@ -6,14 +6,16 @@ import { BALL_RADIUS } from './ball.js';
 //
 // Node tree:
 //
-//   root     yawed toward the aim, positioned at the club head
-//    └ address   fixed lean at address: top tilts left and toward the camera
-//       └ pivot  sits at the hands; the swing is a rotation of this node
-//          ├ grip
-//          ├ shaft
-//          └ head  rests behind the ball, face toward the target
+//   root      yawed toward the aim, positioned at the club head (so the head rests by the ball)
+//    └ hands  where the grip is held at address
+//       └ swing    the swing is a rotation of this node about a LEVEL axis across the target line,
+//                  so the head always travels up and back, never down into the turf
+//          └ lean  fixed address lean: shaft tilts left and toward the camera
+//             ├ grip
+//             ├ shaft
+//             └ head  sole kept flat, face toward the target
 //
-// Swing angle convention (radians about the pivot's x axis):
+// Swing angle convention (radians):
 //   negative = backswing (head comes back toward the camera and up)
 //   0        = address / impact
 //   positive = follow-through (head goes toward the target and up)
@@ -23,41 +25,49 @@ const HEAD = { w: 0.1, h: 0.045, d: 0.035 };
 const UP = new THREE.Vector3(0, 1, 0);
 const FOLLOW_THROUGH_ANGLE = 1.9;
 const FOLLOW_THROUGH_TIME = 0.28;
+const HANDS_LIFT = 0.2;       // hands rise this much (m) through the backswing…
+const HANDS_LIFT_BY = 0.7;    // …reaching full lift at this swing angle (rad)
 
 export function createClub() {
   const L = CLUB_LENGTH;
   const root = new THREE.Group();
   root.name = 'club';
 
-  const address = new THREE.Group();
-  address.rotation.set(0.32, 0, 0.3);
-  root.add(address);
+  const leanQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.32, 0, 0.3));
+  const handsAtAddress = new THREE.Vector3(0, L, 0).applyQuaternion(leanQuat);
 
-  const pivot = new THREE.Group();
-  pivot.position.y = L;
-  address.add(pivot);
+  const hands = new THREE.Group();
+  hands.position.copy(handsAtAddress);
+  root.add(hands);
+
+  const pivot = new THREE.Group(); // the swing node
+  hands.add(pivot);
+
+  const lean = new THREE.Group();
+  lean.quaternion.copy(leanQuat);
+  pivot.add(lean);
 
   const grip = new THREE.Mesh(
     new THREE.CylinderGeometry(0.017, 0.014, L * 0.22, 8),
     new THREE.MeshLambertMaterial({ color: 0x2b2f33 })
   );
   grip.position.y = -L * 0.11;
-  pivot.add(grip);
+  lean.add(grip);
 
   const shaft = new THREE.Mesh(
     new THREE.CylinderGeometry(0.009, 0.008, L * 0.78, 8),
     new THREE.MeshPhongMaterial({ color: 0xc9ced4, specular: 0xffffff, shininess: 80 })
   );
   shaft.position.y = -L * 0.61;
-  pivot.add(shaft);
+  lean.add(shaft);
 
   const head = new THREE.Mesh(
     new THREE.BoxGeometry(HEAD.w, HEAD.h, HEAD.d),
     new THREE.MeshPhongMaterial({ color: 0x4b5966, specular: 0x99a4ad, shininess: 50, flatShading: true })
   );
   head.position.y = -L;
-  head.quaternion.copy(address.quaternion).invert(); // cancel the lean so the sole sits flat
-  pivot.add(head);
+  head.quaternion.copy(leanQuat).invert(); // cancel the lean so the sole sits flat
+  lean.add(head);
 
   root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
@@ -98,6 +108,9 @@ export function createClub() {
       const w = (time * Math.PI * 2) / 2.5;
       pivot.rotation.x = angle + waggle * 0.018 * Math.sin(w + 0.8);
       pivot.rotation.z = angle * 0.18 + waggle * 0.06 * Math.sin(w);
+      // Lift the hands a little in the backswing so the head clears the turf as it starts back.
+      const lift = angle < 0 ? HANDS_LIFT * Math.min(1, -angle / HANDS_LIFT_BY) : 0;
+      hands.position.y = handsAtAddress.y + lift;
     },
   };
 }
