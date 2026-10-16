@@ -1,7 +1,7 @@
 import { TOUR_SPECS } from '../courses/tour.js';
 import { PITCHES } from '../courses/pitches.js';
 import { WIND_LEVELS, MS_TO_MPH } from '../config.js';
-import { REGULATION_HOLES, MAX_STROKES } from '../game/match.js';
+import { REGULATION_HOLES, MAX_STROKES, regulationStrokes } from '../game/match.js';
 
 // Online play screens: the "Play online" card (create / join), the room lobby, and the cards
 // shown over the course during an online match (tee-off intro, live "waiting for…" list, hole
@@ -210,6 +210,7 @@ const OVERLAY = {
         <thead><tr><th scope="col">Player</th><th scope="col">Strokes</th><th scope="col">Holes won</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
+      ${!hole.playoff ? tiebreakLine(m) : ''}
       <button class="primary-btn" type="button" data-action="advance">${btn}</button>
       <p class="match-hint">Whoever taps first moves everyone on.</p>`;
   },
@@ -219,12 +220,14 @@ const OVERLAY = {
     const m = v.match;
     const champ = m.players[m.champion];
     const played = m.holes.slice(0, v.k + 1);
+    const reg = regulationStrokes(m);
     const head = played.map((h, i) => `<th scope="col">${h.playoff ? 'SD' : i + 1}</th>`).join('');
     const rows = m.players.map((p, i) => `
       <tr class="${i === m.champion ? 'is-best' : ''}">
         <th scope="row">${i === m.champion ? '🏆 ' : ''}${esc(p.name)}${i === v.myIndex ? ' <small>(you)</small>' : ''}</th>
         ${played.map((h) => `<td class="${h.winner === i ? 'is-win' : ''}">${h.strokes[i] ?? '–'}</td>`).join('')}
         <td><b>${m.wins[i]}</b></td>
+        <td>${reg[i]}</td>
       </tr>`).join('');
     const cities = played.map((h, i) => `${h.playoff ? 'SD' : i + 1} ${TOUR_SPECS[h.course].city}`).join(' · ');
     const iWon = m.champion === v.myIndex;
@@ -232,9 +235,9 @@ const OVERLAY = {
       <p class="result-kicker">Match over</p>
       <div class="match-trophy" aria-hidden="true">🏆</div>
       <h2 class="match-name">${iWon ? 'You win!' : `${esc(champ.name)} wins!`}</h2>
-      <p class="result-line">${m.wins[m.champion]} ${m.wins[m.champion] === 1 ? 'hole' : 'holes'} won</p>
+      <p class="result-line">${m.wonOnStrokes ? `Level on holes, won on fewer strokes (${reg[m.champion]})` : `${m.wins[m.champion]} ${m.wins[m.champion] === 1 ? 'hole' : 'holes'} won`}</p>
       <table class="match-table match-card-table">
-        <thead><tr><th scope="col">Player</th>${head}<th scope="col">Won</th></tr></thead>
+        <thead><tr><th scope="col">Player</th>${head}<th scope="col">Won</th><th scope="col" title="Total strokes over the three holes">Strokes</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <p class="match-cities">${esc(cities)}</p>
@@ -243,3 +246,12 @@ const OVERLAY = {
       <button class="text-btn" type="button" data-action="leave">Leave</button>`;
   },
 };
+
+// After three holes, level on holes won: say it was settled on total strokes (or goes to sudden death).
+function tiebreakLine(m) {
+  if (!m.tiebreak) return '';
+  const parts = m.tiebreak.players.map((p, i) => `${esc(m.players[p].name)} ${m.tiebreak.totals[i]}`).join(' · ');
+  return m.wonOnStrokes
+    ? `<p class="match-tiebreak">Level on holes, so fewest strokes wins: ${parts}</p>`
+    : `<p class="match-tiebreak">Level on holes and on strokes (${parts}): sudden death!</p>`;
+}

@@ -961,3 +961,5 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .pickup-btn { min-height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: #d63031; color: #fff; font-family: var(--font-body); font-weight: 800; font-size: 12px; cursor: pointer; }
 .match-hint { margin: 6px 0 0; font-weight: 700; font-size: 12px; line-height: 1.35; color: var(--card-muted); }
 .match-card .secondary-btn { width: 100%; }
+
+.match-tiebreak { margin: 8px 0 0; padding: 8px 10px; border-radius: 12px; background: rgba(255, 211, 107, 0.4); font-weight: 800; font-size: 13px; line-height: 1.35; }

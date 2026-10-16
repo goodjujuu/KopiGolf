@@ -3,8 +3,9 @@
 // The game picks three different city holes at random, each with its own random wind (the same
 // wind for everyone on that hole). Every player plays each hole in turn; fewest strokes wins
 // the hole, a tie for fewest halves it. First to win 2 holes takes the match. If nobody has 2
-// after three holes, whoever won the most is champion; if that's tied, the tied players go to
-// sudden death on extra random holes until one of them wins a hole outright.
+// after three holes, whoever won the most is champion; if that's tied, the fewest total strokes
+// over the three holes wins; only if that's level too do the tied players go to sudden death
+// on extra random holes until one of them wins a hole outright.
 //
 // Pure logic, no DOM: main.js drives it and ui/match.js shows it.
 
@@ -103,8 +104,22 @@ export function finishHole(m, random = Math.random) {
     m.champion = m.wins.indexOf(most);
   } else if (m.holeNo + 1 >= REGULATION_HOLES) {
     const top = m.wins.map((w, i) => (w === most ? i : -1)).filter((i) => i >= 0);
-    if (top.length === 1) m.champion = top[0];
-    else m.contenders = top;
+    if (top.length === 1) {
+      m.champion = top[0];
+    } else {
+      // Level on holes won: fewest total strokes over the three holes wins. Only players
+      // level on strokes as well go to sudden death.
+      const tot = regulationStrokes(m);
+      const fewest = Math.min(...top.map((i) => tot[i]));
+      const lowest = top.filter((i) => tot[i] === fewest);
+      m.tiebreak = { players: top, totals: top.map((i) => tot[i]) };
+      if (lowest.length === 1) {
+        m.champion = lowest[0];
+        m.wonOnStrokes = true;
+      } else {
+        m.contenders = lowest;
+      }
+    }
   }
   m.stage = 'holeResult';
   m.decided = m.champion !== null;
@@ -121,6 +136,11 @@ export function nextHole(m) {
   m.turn = 0;
   m.stage = 'handoff';
   return m;
+}
+
+// Total strokes per player over the three regulation holes (the tiebreak).
+export function regulationStrokes(m) {
+  return m.players.map((_, i) => m.holes.slice(0, REGULATION_HOLES).reduce((n, h) => n + (h.strokes[i] ?? 0), 0));
 }
 
 // Total strokes per player over the holes they played (for the scorecard).
