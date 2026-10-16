@@ -87,7 +87,7 @@ export const LOCKER_SECTIONS = {
     { id: 'face', label: 'Face', zoom: 'head', controls: [
       { type: 'choice', key: 'eyes', label: 'Eyes', options: [['round', 'Round'], ['almond', 'Almond'], ['sleepy', 'Sleepy'], ['wide', 'Wide'], ['happy', 'Happy']] },
       { type: 'colour', key: 'eyeColour', label: 'Eye colour', palette: EYE_COLOURS },
-      { type: 'choice', key: 'brows', label: 'Eyebrows', options: [['straight', 'Straight'], ['arched', 'Arched'], ['thick', 'Thick'], ['determined', 'Determined'], ['worried', 'Worried']] },
+      { type: 'choice', key: 'brows', label: 'Eyebrows', options: [['straight', 'Straight'], ['arched', 'Arched'], ['thick', 'Thick'], ['determined', 'Determined'], ['worried', 'Worried'], ['bushy', 'Extra bushy']] },
       { type: 'choice', key: 'nose', label: 'Nose', options: [['button', 'Button'], ['round', 'Round'], ['long', 'Long'], ['wide', 'Wide']] },
       { type: 'choice', key: 'mouth', label: 'Mouth', options: [['smile', 'Smile'], ['grin', 'Grin'], ['smirk', 'Smirk'], ['flat', 'Neutral'], ['open', 'Surprised']] },
       { type: 'choice', key: 'cheeks', label: 'Cheeks', options: [['none', 'Plain'], ['rosy', 'Rosy'], ['freckles', 'Freckles']] },
@@ -290,6 +290,19 @@ export const GOLFER_PRESETS = [
       shoesStyle: 'boots', shoesColour: '#7a5236', shoesAccent: '#f2c84b', soleColour: '#ffffff',
       gloves: 'both', glovesColour: '#f2c84b', glovesAccent: '#3fa7e0',
       neck: 'bowtie', neckColour: '#3fa7e0', wrist: 'sweatband', wristColour: '#e070b0',
+    },
+  },
+  {
+    id: 'matrickseah', name: 'Matrick Seah', blurb: 'Stocky, strong, eyebrows of legend',
+    look: {
+      build: 'muscular', height: 'short', skin: '#efc095', tattoos: 'none',
+      eyes: 'almond', eyeColour: '#1c1712', brows: 'bushy', nose: 'round', mouth: 'flat', cheeks: 'none',
+      hair: 'short', hairColour: '#1c1712', facialHair: 'stubble',
+      hat: 'none', hatColour: '#22262c', glasses: 'none', glassesColour: '#22262c',
+      top: 'polo', topColour: '#2fb5b0', topAccent: '#ffffff',
+      bottoms: 'trousers', bottomsColour: '#1e2430', socksColour: '#ffffff',
+      shoesStyle: 'classic', shoesColour: '#ffffff', shoesAccent: '#2fb5b0', soleColour: '#22262c',
+      gloves: 'left', glovesColour: '#ffffff', glovesAccent: '#2fb5b0', wrist: 'watch', wristColour: '#22262c',
     },
   },
 ];

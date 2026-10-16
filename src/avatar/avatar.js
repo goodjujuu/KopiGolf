@@ -427,10 +427,11 @@ function addFace(head, look, skin) {
     }
     // Eyebrows
     const browStyle = look.brows;
-    const thick = browStyle === 'thick' ? 0.011 : 0.007;
-    const brow = mesh(capsule(thick, 0.04), mat(look.hairColour), ex, ey + 0.05 + (browStyle === 'arched' ? 0.008 : 0), z + 0.004);
+    const thick = browStyle === 'bushy' ? 0.017 : browStyle === 'thick' ? 0.011 : 0.007;
+    const brow = mesh(capsule(thick, browStyle === 'bushy' ? 0.05 : 0.04), mat(look.hairColour), ex, ey + 0.05 + (browStyle === 'arched' ? 0.008 : 0), z + (browStyle === 'bushy' ? 0.007 : 0.004));
     let tilt = PI / 2;
     if (browStyle === 'determined') tilt += side * 0.35;
+    if (browStyle === 'bushy') { tilt += side * 0.12; brow.scale.set(1, 1, 0.75); } // heavy, slightly stern
     if (browStyle === 'worried') tilt -= side * 0.35;
     if (browStyle === 'arched') tilt += side * 0.12;
     brow.rotation.z = tilt;
