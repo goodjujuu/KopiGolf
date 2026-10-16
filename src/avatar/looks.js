@@ -275,6 +275,23 @@ export const GOLFER_PRESETS = [
       gloves: 'both', glovesColour: '#22262c', glovesAccent: '#e04848', wrist: 'sweatband', wristColour: '#e04848',
     },
   },
+  {
+    id: 'gleb', name: 'Gleb', blurb: 'Medium height (he says tall), fashion crimes',
+    look: {
+      // Cowboy hat and boots for those extra centimetres; every pattern at once.
+      build: 'regular', height: 'medium', skin: '#f7d0ae', tattoos: 'none',
+      eyes: 'wide', eyeColour: '#3f7fbf', brows: 'arched', nose: 'long', mouth: 'grin', cheeks: 'rosy',
+      hair: 'sidepart', hairColour: '#d9b26a', facialHair: 'none',
+      hat: 'cowboy', hatColour: '#e070b0', hatPattern: 'dots', hatAccent: '#f2c84b',
+      glasses: 'sport', glassesColour: '#e04848', lensColour: '#f08a3c',
+      top: 'shirt', topColour: '#f08a3c', topAccent: '#7a4fd1', topPattern: 'floral',
+      bottoms: 'shorts', bottomsColour: '#2f9e6a', bottomsPattern: 'tartan', bottomsAccent: '#e04848',
+      socksStyle: 'knee', socksPattern: 'argyle', socksColour: '#7cc24a', socksAccent: '#e070b0',
+      shoesStyle: 'boots', shoesColour: '#7a5236', shoesAccent: '#f2c84b', soleColour: '#ffffff',
+      gloves: 'both', glovesColour: '#f2c84b', glovesAccent: '#3fa7e0',
+      neck: 'bowtie', neckColour: '#3fa7e0', wrist: 'sweatband', wristColour: '#e070b0',
+    },
+  },
 ];
 
 // A look for a player who isn't on this device's Locker (pass the phone): a crew member gets their
