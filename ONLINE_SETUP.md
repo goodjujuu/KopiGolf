@@ -36,3 +36,22 @@ through the browser itself. It's handy for testing; it can't reach other devices
 The free Spark plan allows 100 phones connected at once and 1 GB of stored data, far more
 than friends' matches need. Old rooms stay in the database but are tiny. You can delete the
 `rooms` node in the Firebase console whenever you like.
+
+## Hosting at kopigolf.web.app
+
+The game is also served by Firebase Hosting at <https://kopigolf.web.app>.
+`firebase.json` and `.firebaserc` are already set up (the whole folder is the site; nothing to
+build). One-off setup on the Mac, in the KopiGolf folder:
+
+```
+npm install -g firebase-tools        # or: sudo npm install -g firebase-tools
+firebase login
+firebase deploy --only hosting       # first deploy → https://kopigolf.web.app
+firebase init hosting:github         # from now on every git push to main redeploys
+```
+
+For `firebase init hosting:github`: repository `goodjujuu/KopiGolf`; build script before
+deploy: **No**; deploy when a PR is merged: **Yes**; branch: **main**. It adds two files under
+`.github/workflows/`; commit and push them.
+
+`firebase deploy --only database` publishes `database.rules.json` too, if the rules ever change.
