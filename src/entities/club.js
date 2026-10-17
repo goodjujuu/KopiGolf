@@ -182,7 +182,7 @@ export function createClub() {
         m.needsUpdate = true;
       }
       for (const arm of forearms) arm.material = longSleeves ? sleeveMat : skinMat;
-      for (const u of uppers) u.material = look.top === 'tank' ? skinMat : shirtMat;
+      for (const u of uppers) u.material = look.top === 'tank' || look.top === 'shirtless' ? skinMat : shirtMat;
       if (wristwear) {
         wristwear.visible = look.wrist === 'watch' || look.wrist === 'sweatband' || (look.wrist === 'bracelet' && !longSleeves);
         wristMat.color.set(look.wristColour);

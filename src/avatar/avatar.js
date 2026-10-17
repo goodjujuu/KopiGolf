@@ -127,7 +127,8 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
   const torsoR = build.torso;
   const torsoLen = size.torso;
   const torsoCentre = hipY + torsoLen / 2 + torsoR * 0.55;
-  const topMat = fabric(look.topColour, look.topAccent, look.topPattern, [3, 2]);
+  const shirtless = look.top === 'shirtless';
+  const topMat = shirtless ? skin : fabric(look.topColour, look.topAccent, look.topPattern, [3, 2]);
   const accentMat = mat(look.topAccent);
   const depth = build.depth ?? 0.78;
   const torso = mesh(capsule(torsoR, torsoLen), topMat, 0, torsoCentre, 0);
@@ -147,6 +148,25 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
     const belly = mesh(sphere(torsoR * (0.78 + 0.12 * build.belly)), topMat, 0, torsoCentre - torsoLen * 0.28, torsoR * depth * 0.32 * build.belly);
     belly.scale.set(1.05, 0.92, 0.85);
     group.add(belly);
+  }
+  // Shirtless: a chest and a six-pack.
+  if (shirtless) {
+    const front = torsoR * depth;
+    if (!build.muscles) {
+      for (const side of [-1, 1]) {
+        const pec = mesh(sphere(torsoR * 0.48, 16, 12), skin, side * torsoR * 0.4, torsoCentre + torsoLen * 0.32, front * 0.62);
+        pec.scale.set(1.15, 0.7, 0.55);
+        group.add(pec);
+      }
+    }
+    for (let row = 0; row < 3; row++) {
+      for (const side of [-1, 1]) {
+        const ab = mesh(sphere(torsoR * 0.2, 12, 10), skin, side * torsoR * 0.22, torsoCentre - torsoLen * 0.05 - row * torsoR * 0.36, front * 0.96);
+        ab.scale.set(1, 0.82, 0.42);
+        group.add(ab);
+      }
+    }
+    group.add(mesh(new THREE.CircleGeometry(torsoR * 0.05, 10), mat('#5a3424', { opacity: 0.6 }), 0, torsoCentre - torsoLen * 0.05 - 3 * torsoR * 0.36, front * 1.0));
   }
   // Hips / waistband in the bottoms colour.
   const hips = mesh(capsule(torsoR * 0.98, 0.04), bottomsMat, 0, hipY + 0.02, 0);
@@ -230,7 +250,7 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
 
   // ---------- arms ----------
   const longSleeves = LONG_SLEEVES.includes(look.top);
-  const tank = look.top === 'tank';
+  const tank = look.top === 'tank' || shirtless; // bare arms
   const sleeveMat = look.top === 'vest' ? accentMat : topMat; // vest: shirt sleeves in the trim colour
   const vestLong = look.top === 'vest';
   const gloveMat = mat(look.glovesColour, { shine: 30 });
@@ -929,9 +949,10 @@ function addGlasses(head, look) {
     } else if (style === 'goggles') {
       rim = mesh(new THREE.TorusGeometry(0.036, 0.012, 8, 20), frame, x, y, z + 0.006);
     } else if (style === 'heart') {
-      rim = heartMesh(0.04, frame, x, y, z);
+      // Hearts sit a touch further out so even big eyes stay behind them.
+      rim = heartMesh(0.046, frame, x, y, z + 0.012);
       head.add(rim);
-      const lens = heartMesh(0.033, lensMat, x, y, z + 0.002);
+      const lens = heartMesh(0.038, lensMat, x, y, z + 0.014);
       head.add(lens);
       rim = null;
     } else {

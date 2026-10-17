@@ -109,7 +109,7 @@ export const LOCKER_SECTIONS = {
       { type: 'colour', key: 'lensColour', label: 'Lens tint', palette: LENS_TINTS },
     ] },
     { id: 'top', label: 'Top', controls: [
-      { type: 'choice', key: 'top', label: 'Style', options: [['polo', 'Polo'], ['tee', 'T-shirt'], ['jersey', 'Football jersey'], ['tank', 'Tank top'], ['shirt', 'Button shirt'], ['longsleeve', 'Long sleeve'], ['rugby', 'Rugby'], ['vest', 'Sweater vest'], ['sweater', 'Sweater'], ['hoodie', 'Hoodie'], ['jacket', 'Jacket'], ['windbreaker', 'Windbreaker']] },
+      { type: 'choice', key: 'top', label: 'Style', options: [['polo', 'Polo'], ['tee', 'T-shirt'], ['jersey', 'Football jersey'], ['shirtless', 'Shirtless'], ['tank', 'Tank top'], ['shirt', 'Button shirt'], ['longsleeve', 'Long sleeve'], ['rugby', 'Rugby'], ['vest', 'Sweater vest'], ['sweater', 'Sweater'], ['hoodie', 'Hoodie'], ['jacket', 'Jacket'], ['windbreaker', 'Windbreaker']] },
       { type: 'choice', key: 'topPattern', label: 'Pattern', options: PATTERN_OPTIONS, preview: ['topColour', 'topAccent'] },
       { type: 'colour', key: 'topColour', label: 'Main colour', palette: CLOTHING },
       { type: 'colour', key: 'topAccent', label: 'Trim / pattern colour', palette: CLOTHING },
@@ -353,6 +353,23 @@ export const GOLFER_PRESETS = [
       gloves: 'none', glovesColour: '#ffffff',
       neck: 'none', wrist: 'sweatband', wristColour: '#3fa7e0', ears: 'footballs', earColour: '#d9a93a',
       ballColour: '#f8f8f6', gripColour: '#3a63d8',
+    },
+  },
+  {
+    id: 'keenan', name: 'Keenan', blurb: 'Silly as anything, abs for days',
+    look: {
+      build: 'muscular', height: 'tall', skin: '#efc095', tattoos: 'none',
+      eyes: 'wide', eyeColour: '#3f7fbf', brows: 'arched', nose: 'button', mouth: 'open', cheeks: 'rosy',
+      hair: 'spiky', hairColour: '#f2dfa8', facialHair: 'none',
+      hat: 'none', hatColour: '#e04848', hatAccent: '#ffffff', hatPattern: 'solid',
+      glasses: 'heart', glassesColour: '#e04848', lensColour: '#1a2230',
+      top: 'shirtless', topColour: '#e04848', topAccent: '#ffffff', topPattern: 'solid',
+      bottoms: 'shorts', bottomsColour: '#3fa7e0', bottomsAccent: '#f2c84b', bottomsPattern: 'floral',
+      socksStyle: 'crew', socksColour: '#ffffff', socksAccent: '#e04848', socksPattern: 'solid',
+      shoesStyle: 'hightop', shoesColour: '#e04848', shoesAccent: '#ffffff', soleColour: '#ffffff',
+      gloves: 'none', glovesColour: '#ffffff',
+      neck: 'none', wrist: 'sweatband', wristColour: '#e04848', ears: 'none',
+      ballColour: '#ff9a3c', gripColour: '#e04848',
     },
   },
 ];
