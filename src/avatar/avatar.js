@@ -19,6 +19,7 @@ const BUILDS = {
 };
 const INK = '#2c3553'; // tattoo ink
 const HEIGHTS = {
+  little: { leg: 0.16, torso: 0.1 }, // a kid
   short: { leg: 0.22, torso: 0.13 }, medium: { leg: 0.28, torso: 0.16 },
   tall: { leg: 0.34, torso: 0.19 }, xtall: { leg: 0.43, torso: 0.23 },
 };
@@ -317,6 +318,20 @@ function addNeckwear(group, look, neckR, neckY, shoulderY, frontZ, torsoLen) {
       if (look.neck === 'pendant') group.add(mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.006, 12), m, 0, neckY - 0.09, frontZ * 0.9).rotateX(PI / 2));
       return;
     }
+    case 'pearls': { // a string of pearls whatever the colour picked
+      const pearl = mat('#f6f0e4', { shine: 120 });
+      const ringR = neckR * 1.75;
+      for (let i = 0; i < 18; i++) {
+        const a = (i / 18) * PI * 2;
+        const p = mesh(sphere(0.014, 8, 6), pearl, Math.sin(a) * ringR, 0, Math.cos(a) * ringR);
+        const holder = new THREE.Group();
+        holder.add(p);
+        holder.position.set(0, neckY - 0.045, 0.018);
+        holder.rotation.x = -0.45;
+        group.add(holder);
+      }
+      return;
+    }
     case 'tie': {
       group.add(mesh(new THREE.BoxGeometry(0.03, 0.026, 0.02), m, 0, shoulderY - 0.005, frontZ));
       const blade = mesh(new THREE.ConeGeometry(0.03, torsoLen * 0.95, 4), m, 0, shoulderY - 0.02 - torsoLen * 0.47, frontZ + 0.004);
@@ -397,6 +412,7 @@ const EYE_SHAPES = {
   sleepy: { w: 0.036, h: 0.022, lid: true },
   wide: { w: 0.044, h: 0.046 },
   happy: { w: 0.034, h: 0.012, arc: true },
+  lashes: { w: 0.036, h: 0.04, lashes: true },
 };
 
 function addFace(head, look, skin) {
@@ -419,6 +435,15 @@ function addFace(head, look, skin) {
       head.add(iris);
       head.add(mesh(new THREE.CircleGeometry(Math.min(eye.w, eye.h) * 0.3, 14), dark, ex, ey - 0.002, z + 0.018));
       head.add(mesh(new THREE.CircleGeometry(0.006, 8), white, ex + 0.008, ey + 0.008, z + 0.019));
+      if (eye.lashes) {
+        // Three little flicks off the outer top edge of each eye.
+        for (let i = 0; i < 3; i++) {
+          const a = 0.5 + i * 0.35; // around the top-outer edge
+          const lash = mesh(capsule(0.0032, 0.014), dark, ex + side * Math.cos(a) * eye.w * 0.95, ey + Math.sin(a) * eye.h * 0.95, z + 0.012);
+          lash.rotation.z = -side * (PI / 2 - a);
+          head.add(lash);
+        }
+      }
       if (eye.lid) {
         const lid = mesh(new THREE.SphereGeometry(1, 14, 8, 0, PI * 2, 0, PI / 2), skin, ex, ey + 0.002, z - 0.004);
         lid.scale.set(eye.w * 1.08, eye.h * 1.1, 0.026);
@@ -454,7 +479,15 @@ function addFace(head, look, skin) {
   // Mouth
   const lip = mat('#7a2e2e');
   const my = -0.07;
-  if (look.mouth === 'smile') {
+  if (look.mouth === 'lipstick') {
+    const red = mat('#d12c4a', { shine: 70 });
+    const m = mesh(new THREE.TorusGeometry(0.028, 0.009, 6, 14, PI), red, 0, my + 0.012, z - 0.012);
+    m.rotation.z = PI;
+    head.add(m);
+    const top = mesh(capsule(0.007, 0.03), red, 0, my + 0.008, z - 0.004);
+    top.rotation.z = PI / 2;
+    head.add(top);
+  } else if (look.mouth === 'smile') {
     const m = mesh(new THREE.TorusGeometry(0.032, 0.006, 6, 14, PI), lip, 0, my + 0.012, z - 0.012);
     m.rotation.z = PI;
     head.add(m);
@@ -592,6 +625,17 @@ function addHair(head, look) {
       head.add(tail);
       return;
     }
+    case 'pigtails': {
+      head.add(hairCap(r, 1.45, h));
+      for (const side of [-1, 1]) {
+        const tie = mesh(sphere(0.03, 10, 8), h, side * HEAD_R * 0.92, 0.04, -HEAD_R * 0.25);
+        head.add(tie);
+        const tail = mesh(capsule(0.036, 0.12), h, side * HEAD_R * 1.12, -0.04, -HEAD_R * 0.28);
+        tail.rotation.z = side * 0.35;
+        head.add(tail);
+      }
+      return;
+    }
     case 'bob': {
       head.add(hairCap(r * 1.04, 1.95, h, 0.15));
       return;
@@ -716,6 +760,20 @@ function addHat(head, look) {
       head.add(ring(r * 1.0, 0.016, r * 0.5, look.hat === 'tam' ? band : m));
       if (look.hat === 'tam') head.add(mesh(sphere(0.045, 10, 8), band, 0, r * 0.98, 0));
       else head.add(mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.03, 6), m, r * 0.12, r * 0.85, 0));
+      return;
+    }
+    case 'bow': { // a big hair bow on one side
+      const bow = new THREE.Group();
+      for (const s of [-1, 1]) {
+        const wing = mesh(new THREE.ConeGeometry(0.05, 0.09, 4), m, s * 0.045, 0, 0);
+        wing.rotation.z = s * PI / 2;
+        wing.scale.z = 0.45;
+        bow.add(wing);
+      }
+      bow.add(mesh(sphere(0.022, 10, 8), band, 0, 0, 0.004));
+      bow.position.set(r * 0.5, r * 0.88, -r * 0.05);
+      bow.rotation.set(-0.2, 0, -0.45);
+      head.add(bow);
       return;
     }
     case 'headband': {

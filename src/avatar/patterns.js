@@ -7,7 +7,7 @@ import * as THREE from 'three';
 export const PATTERNS = [
   ['solid', 'Plain'], ['stripes', 'Stripes'], ['pinstripe', 'Pinstripe'], ['gingham', 'Gingham'],
   ['tartan', 'Tartan'], ['argyle', 'Argyle'], ['dots', 'Polka dots'], ['camo', 'Camo'],
-  ['floral', 'Hawaiian'], ['chevron', 'Chevron'], ['twotone', 'Two-tone'], ['racing', 'Racing stripe'],
+  ['floral', 'Hawaiian'], ['chevron', 'Chevron'], ['twotone', 'Two-tone'], ['racing', 'Racing stripe'], ['stars', 'Stars'],
 ];
 
 const SIZE = 128;
@@ -153,6 +153,23 @@ export function drawPattern(ctx, id, base, accent, size = SIZE) {
       ctx.fillRect(s * 0.37, 0, s * 0.02, s);
       ctx.fillRect(s * 0.61, 0, s * 0.02, s);
       ctx.globalAlpha = 1;
+      break;
+    case 'stars': // little five-point stars, staggered
+      for (let y = 0; y < 3; y++) {
+        for (let x = 0; x < 3; x++) {
+          const cx = (x + (y % 2) * 0.5) * (s / 3) + s / 6;
+          const cy = y * (s / 3) + s / 6;
+          const R = s / 11;
+          ctx.beginPath();
+          for (let i = 0; i < 10; i++) {
+            const a = -Math.PI / 2 + (i * Math.PI) / 5;
+            const rr = i % 2 ? R * 0.45 : R;
+            ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
       break;
     default: // solid
   }
