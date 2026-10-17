@@ -591,6 +591,22 @@ function addFace(head, look, skin) {
         head.add(mesh(new THREE.CircleGeometry(0.0045, 8), fm, side * (0.08 + dx), -0.03 + dy, z - 0.014));
       }
     }
+  } else if (look.cheeks === 'lots') {
+    // A big scatter of freckles across both cheeks and over the nose, sat on the skin.
+    const fm = mat('#8a5a3a', { opacity: 0.75 });
+    const dot = new THREE.SphereGeometry(0.0042, 6, 4);
+    let seed = 7;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const put = (x, y) => {
+      const zz = 0.95 * Math.sqrt(Math.max(0, HEAD_R * HEAD_R - x * x - (y / 0.97) ** 2)) + 0.0005;
+      const f = mesh(dot, fm, x, y, zz);
+      f.scale.z = 0.35;
+      head.add(f);
+    };
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 15; i++) put(side * (0.04 + rnd() * 0.085), -0.065 + rnd() * 0.06);
+    }
+    for (let i = 0; i < 6; i++) put(-0.03 + rnd() * 0.06, -0.03 + rnd() * 0.025);
   }
 }
 
@@ -711,6 +727,26 @@ function addHair(head, look) {
       const flop = mesh(sphere(0.05, 12, 10), h, 0.115, HEAD_R * 0.5, HEAD_R * 0.5);
       flop.scale.set(0.8, 1.3, 0.8);
       head.add(flop);
+      return;
+    }
+    case 'curtains': {
+      // Middle part, falling to the jaw at the sides and over the neck at the back.
+      head.add(hairCap(r, 1.55, h, 0.3));
+      for (const side of [-1, 1]) {
+        const sweep = mesh(sphere(HEAD_R * 0.5, 16, 12), h, side * HEAD_R * 0.42, HEAD_R * 0.55, HEAD_R * 0.62);
+        sweep.scale.set(1.1, 0.55, 0.6);
+        sweep.rotation.z = side * -0.35;
+        head.add(sweep);
+        const curtain = mesh(capsule(0.04, 0.12), h, side * HEAD_R * 0.9, -0.01, HEAD_R * 0.32);
+        curtain.rotation.z = side * 0.12;
+        curtain.scale.set(1, 1, 0.75);
+        head.add(curtain);
+      }
+      if (!hatOn) {
+        const back = mesh(capsule(HEAD_R * 0.8, 0.08), h, 0, -0.06, -HEAD_R * 0.5);
+        back.scale.set(1.08, 1, 0.55);
+        head.add(back);
+      }
       return;
     }
     case 'pigtails': {
