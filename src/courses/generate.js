@@ -1,4 +1,4 @@
-import { BIOMES, BUILDING_STYLES } from './biomes.js';
+import { BIOMES, BUILDING_STYLES, BUILDING_KINDS, LOW_KINDS } from './biomes.js';
 import { OBSTACLES, obstacleRadius } from './obstacles.js';
 
 // Turns a short course spec (city, par, length, shape, hazards, landmarks) into a full hole:
@@ -131,7 +131,11 @@ export function generateHole(spec, number) {
   const endYaw = pathAt(path, total).yaw;
   const axisYaw = yawOf(pinPt[0], pinPt[1]);
 
-  const width = spec.par === 3 ? R(24, 28) : R(30, 38);
+  // Layout extras (see DESIGNS below): change the width, add hazards that shape the play.
+  const design = new Set(spec.design ?? []);
+  let width = spec.par === 3 ? R(24, 28) : R(30, 38);
+  if (design.has('narrow')) width = spec.par === 3 ? R(19, 22) : R(22, 26);
+  if (design.has('wide')) width = spec.par === 3 ? R(32, 36) : R(44, 52);
   const greenRadius = R(12, 15);
   const fairwayStart = spec.par === 3 ? total * 0.55 : 28;
   // Island greens: the fairway stops short of the water ringing the green.
@@ -220,9 +224,11 @@ export function generateHole(spec, number) {
     }
   }
 
+  addDesignHazards({ design, spec, rng, R, path, total, width, greenRadius, endYaw, pinPt, ponds, bunkers, fairway, turnSign });
+
   const hole = {
     id: spec.id, number, name: spec.name, city: spec.city, country: spec.country,
-    par: spec.par, yards: spec.yards, theme: spec.biome, biome: spec.biome, pitch: spec.pitch ?? 'grass',
+    par: spec.par, yards: spec.yards, theme: spec.biome, biome: spec.biome, pitch: spec.pitch ?? 'grass', leaves: spec.leaves ?? null,
     tee: [0, 0, 0], pin: [pinPt[0], 0, pinPt[1]],
     path, fairway, greenRadius, bunkers, ponds, sea, rivers, islandLand,
     bounds: { x: pathAt(path, total / 2).x, z: pathAt(path, total / 2).z, r: total / 2 + 170 },
@@ -242,13 +248,29 @@ export function generateHole(spec, number) {
     hole.hills.push([round(x), round(z), round(r)]);
   }
 
+  // Rolling mounds lining both sides of the fairway (just outside the rough's first cut).
+  if (design.has('mounds')) {
+    for (let s = 40; s < total - 20; s += R(26, 36)) {
+      const p = pathAt(path, s);
+      for (const side of [-1, 1]) {
+        if (rng() < 0.2) continue;
+        const r = R(5, 8);
+        const lat = side * (width / 2 + 6 + r * 1.45 + R(0, 6));
+        const x = p.x + p.right[0] * lat;
+        const z = p.z + p.right[1] * lat;
+        if (!clearOfPlay(hole, x, z, width / 2 + 5 + r * 1.43)) continue;
+        hole.hills.push([round(x), round(z), round(r)]);
+      }
+    }
+  }
+
   // ---------- city obstacles (things the ball can hit) ----------
   hole.obstacles = [];
   hole.colliders = [];
   placeObstacles(hole, spec, rng, R, total, width, endYaw);
 
   // ---------- trees ----------
-  const types = Object.entries(biome.trees);
+  const types = Object.entries(spec.trees ?? biome.trees); // a city can bring its own trees
   const weightSum = types.reduce((a, [, w]) => a + w, 0);
   const pickType = () => {
     let r = rng() * weightSum;
@@ -328,13 +350,28 @@ export function generateHole(spec, number) {
     };
   });
 
-  // ---------- skyline ----------
+  // ---------- skyline (tall, far off) and neighbourhood (low, nearer) ----------
   hole.buildings = [];
   const sky = spec.skyline;
+  const pickKind = (weights) => {
+    const entries = Object.entries(weights);
+    let r = rng() * entries.reduce((n, [, w]) => n + w, 0);
+    for (const [k, w] of entries) { r -= w; if (r <= 0) return k; }
+    return entries[0][0];
+  };
+  // Low buildings keep to their own heights, whatever the skyline does.
+  const lowHeight = (kind) => ({ gable: R(9, 18), flat: R(6, 11), pagoda: R(16, 28), dome: R(10, 18) })[kind] ?? R(10, 20);
+  const placeBuilding = (x, z, kind, h, style, a, size = [16, 38]) => {
+    const palette = BUILDING_STYLES[style] ?? BUILDING_STYLES.mixed;
+    const w = kind === 'pagoda' ? R(12, 18) : R(size[0], size[1]);
+    const d = kind === 'pagoda' ? w : R(size[0], size[1]);
+    hole.buildings.push([round(x), round(z), round(w), round(d), round(h), Math.floor(rng() * palette.length), round(a, 100), kind, style]);
+  };
   if (sky && sky.density > 0) {
-    const palette = BUILDING_STYLES[sky.style ?? 'mixed'];
+    const style = sky.style ?? 'mixed';
+    const kinds = BUILDING_KINDS[style] ?? BUILDING_KINDS.mixed;
     const count = Math.round(28 * sky.density);
-    for (let tries = 0; hole.buildings.length < count && tries < count * 6; tries++) {
+    for (let tries = 0, made = 0; made < count && tries < count * 6; tries++) {
       const a = axisYaw + R(-80, 80) * DEG;
       const d = R(sky.near ?? 430, sky.far ?? 950);
       const [fx, fz] = forward(a);
@@ -342,14 +379,164 @@ export function generateHole(spec, number) {
       const z = pinPt[1] + fz * d;
       if (hole.landmarks.some((l) => Math.hypot(l.x - x, l.z - z) < 110 * l.scale)) continue;
       if (sea && seaDistance(sea, x, z) > -10) continue;
+      const kind = pickKind(kinds.tall);
       const tall = rng() < 0.15 ? 2.2 : 1;
-      const h = R(22, 60) * (0.7 + sky.density * 0.35) * tall * (sky.height ?? 1);
-      hole.buildings.push([round(x), round(z), round(R(16, 38)), round(R(16, 38)), round(h), Math.floor(rng() * palette.length), round(a, 100)]);
+      const h = LOW_KINDS.has(kind) ? lowHeight(kind) * (1 + sky.density * 0.25) : R(22, 60) * (0.7 + sky.density * 0.35) * tall * (sky.height ?? 1);
+      placeBuilding(x, z, kind, h, style, a);
+      made++;
     }
-    hole.buildingStyle = sky.style ?? 'mixed';
+    // The neighbourhood: low houses and shops closer in, all round the hole.
+    const lowStyle = sky.low ?? style;
+    const lowKinds = (BUILDING_KINDS[lowStyle] ?? BUILDING_KINDS.mixed).low;
+    const lowCount = Math.round(10 + 10 * Math.min(2, sky.density));
+    for (let tries = 0, made = 0; made < lowCount && tries < lowCount * 8; tries++) {
+      const a = rng() * Math.PI * 2;
+      const d = R(hole.bounds.r * 0.75, hole.bounds.r + 220);
+      const x = hole.bounds.x + Math.cos(a) * d;
+      const z = hole.bounds.z + Math.sin(a) * d;
+      if (!clearOfPlay(hole, x, z, width / 2 + 55)) continue;
+      if (Math.hypot(x, z) < 70) continue; // not right behind the tee
+      if (hole.landmarks.some((l) => Math.hypot(l.x - x, l.z - z) < 70 * l.scale)) continue;
+      if (hole.buildings.some((b) => Math.hypot(b[0] - x, b[1] - z) < 26)) continue;
+      const kind = pickKind(lowKinds);
+      placeBuilding(x, z, kind, lowHeight(kind), lowStyle, a + R(-0.3, 0.3), [10, 20]);
+      made++;
+      // Close enough to be hit: make it solid, and clear any trees out of the way.
+      const [bx, bz, bw, bd, bh, , byaw] = hole.buildings[hole.buildings.length - 1];
+      const reach = Math.max(bw, bd) * 0.75 + 3;
+      const gone = new Set();
+      hole.trees = hole.trees.filter((t) => {
+        const inside = Math.hypot(t[1] - bx, t[2] - bz) < reach;
+        if (inside) gone.add(`${t[1]},${t[2]}`);
+        return !inside;
+      });
+      if (gone.size) hole.colliders = hole.colliders.filter((c) => c.label !== 'tree' || !gone.has(`${c.x},${c.z}`));
+      if (Math.hypot(bx - hole.bounds.x, bz - hole.bounds.z) < hole.bounds.r + 20) {
+        hole.colliders.push({ c: 'box', x: bx, z: bz, w: bw, d: bd, h: bh, y0: 0, yaw: byaw, e: 0.35, label: 'building' });
+      }
+    }
+    hole.buildingStyle = style;
   }
 
   return hole;
+}
+
+// ---------- layout designs ----------
+// Every design is built from the same pieces the physics already knows (ponds, bunkers, the
+// fairway's width, mounds), so they all play like the rest of the course.
+//   split / splitSand: a pond (or bunker) in the middle of the landing zone: go left or right
+//   reflect: twin reflecting canals running down both edges of the fairway
+//   carry: a lake you have to carry off the tee
+//   peninsula: water on three sides of the green
+//   cornerLake: a lake in the inside of the dogleg (cut the corner over the water, or play round)
+//   pots: lots of small, deep pot bunkers dotted about
+//   waste: a long sandy waste area down one side
+//   heavy: a cross bunker short of the green and extra greenside sand
+//   narrow / wide: the fairway's width (set above)   mounds: rolling mounds along the sides
+function addDesignHazards({ design, spec, rng, R, path, total, width, greenRadius, endYaw, pinPt, ponds, bunkers, fairway, turnSign }) {
+  if (!design.size) return;
+  const pin = { x: pinPt[0], z: pinPt[1] };
+  // Keep the tee box, the green (with a little apron) and the other water clear.
+  const safe = (e, pad = 4) => {
+    const grown = { ...e, rx: e.rx + pad, rz: e.rz + pad };
+    if (inEllipse(grown, 0, 0) || Math.hypot(e.x, e.z) < Math.max(e.rx, e.rz) + 22) return false;
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) { // round the green's oval edge
+      const gx = pin.x + Math.cos(a) * greenRadius * 1.4;
+      const gz = pin.z + Math.sin(a) * greenRadius;
+      if (inEllipse(grown, gx, gz)) return false;
+    }
+    return !inEllipse(grown, pin.x, pin.z);
+  };
+  const landing = spec.par === 3 ? total * 0.55 : Math.min(total * 0.55, R(200, 230));
+
+  if (design.has('split') || design.has('splitSand')) {
+    const p = pathAt(path, landing + R(-8, 8));
+    const e = { x: p.x, z: p.z, rx: Math.max(4.5, width * 0.2), rz: R(20, 28), yaw: p.yaw };
+    if (safe(e, 6)) (design.has('split') ? ponds : bunkers).push(roundE(e));
+  }
+  if (design.has('reflect')) {
+    // Twin reflecting canals down both edges of the fairway (a Mughal garden): the middle
+    // stays open, anything wide gets wet.
+    const a = total * 0.28;
+    const b = total * 0.7;
+    const mid = pathAt(path, (a + b) / 2);
+    for (const side of [-1, 1]) {
+      const lat = side * (width / 2 + 4);
+      const e = { x: mid.x + mid.right[0] * lat, z: mid.z + mid.right[1] * lat, rx: 3.5, rz: (b - a) / 2, yaw: mid.yaw };
+      if (safe(e, 5)) ponds.push(roundE(e));
+    }
+  }
+  if (design.has('carry')) {
+    const at = spec.par === 3 ? total * R(0.4, 0.5) : R(75, 95);
+    const p = pathAt(path, at);
+    let e = { x: p.x, z: p.z, rx: width / 2 + R(26, 40), rz: spec.par === 3 ? total * 0.18 : R(24, 32), yaw: p.yaw };
+    for (let i = 0; i < 4 && !safe(e, 5); i++) e = { ...e, rz: e.rz * 0.8, rx: e.rx * 0.9 };
+    if (safe(e, 5)) ponds.push(roundE(e));
+  }
+  if (design.has('peninsula')) {
+    for (const [side, ahead] of [[-1, 0.15], [1, 0.15], [0, 1]]) {
+      const a = endYaw;
+      const [fx, fz] = forward(a);
+      const [rx, rz] = rightOf(a);
+      const w = R(14, 18);
+      const lat = side * (greenRadius * 1.4 + 7 + w);
+      const fwd = side === 0 ? greenRadius + 7 + w : greenRadius * ahead;
+      const e = { x: pin.x + rx * lat + fx * fwd, z: pin.z + rz * lat + fz * fwd, rx: side === 0 ? greenRadius * 2.4 : w, rz: side === 0 ? w : greenRadius + 22, yaw: a };
+      if (safe(e, 3)) ponds.push(roundE(e));
+    }
+  }
+  if (design.has('cornerLake') && path.length >= 3) {
+    const [cx, cz] = path[1];
+    const [bx, bz] = path[path.length - 1];
+    const k = 0.5;
+    const mx = cx + (bx * 0.5 - cx) * k; // towards the tee–pin line, on the inside of the bend
+    const mz = cz + (bz * 0.5 - cz) * k;
+    const legYaw = yawOf(bx - cx, bz - cz);
+    let e = { x: mx, z: mz, rx: R(22, 30), rz: R(30, 42), yaw: legYaw };
+    const clearOfFairway = (el) => {
+      const grown = { ...el, rx: el.rx + width / 2 + 3, rz: el.rz + width / 2 + 3 };
+      const L = pathLength(fairway.points);
+      for (let s = 0; s <= L; s += 6) { const q = pathAt(fairway.points, s); if (inEllipse(grown, q.x, q.z)) return false; }
+      return true;
+    };
+    for (let i = 0; i < 5 && !(clearOfFairway(e) && safe(e, 5)); i++) e = { ...e, rx: e.rx * 0.82, rz: e.rz * 0.82 };
+    if (clearOfFairway(e) && safe(e, 5) && e.rx > 8) ponds.push(roundE(e));
+  }
+  if (design.has('pots')) {
+    const n = spec.par === 3 ? 7 : 11;
+    for (let i = 0, tries = 0; i < n && tries < 60; tries++) {
+      const p = pathAt(path, total * R(0.25, 0.96));
+      const lat = (rng() < 0.5 ? -1 : 1) * R(2, width / 2 + 5);
+      const e = { x: p.x + p.right[0] * lat, z: p.z + p.right[1] * lat, rx: R(2.6, 3.4), rz: R(2.4, 3.2), yaw: rng() * Math.PI };
+      if (!safe(e, 3) || ponds.some((q) => inEllipse({ ...q, rx: q.rx + 5, rz: q.rz + 5 }, e.x, e.z))) continue;
+      if (bunkers.some((b) => Math.hypot(b.x - e.x, b.z - e.z) < Math.max(b.rx, b.rz) + 6)) continue;
+      bunkers.push(roundE(e));
+      i++;
+    }
+  }
+  if (design.has('waste')) {
+    const p = pathAt(path, total * R(0.45, 0.55));
+    const side = -turnSign;
+    const e = { x: p.x + p.right[0] * side * (width / 2 + 5), z: p.z + p.right[1] * side * (width / 2 + 5), rx: R(9, 12), rz: total * 0.26, yaw: p.yaw };
+    for (let i = 0; i < 4 && !safe(e, 4); i++) e.rz *= 0.8;
+    if (safe(e, 4)) bunkers.push(roundE(e));
+  }
+  if (design.has('heavy')) {
+    const p = pathAt(path, total - greenRadius - R(45, 65));
+    const cross = { x: p.x, z: p.z, rx: width * 0.42, rz: R(3.5, 4.5), yaw: p.yaw };
+    if (safe(cross, 4)) bunkers.push(roundE(cross));
+    for (const a of [100, -100]) {
+      const yawA = endYaw + a * DEG;
+      const [fx, fz] = forward(yawA);
+      const d = greenRadius * 1.25 + R(5, 8);
+      const e = { x: pin.x + fx * d, z: pin.z + fz * d, rx: R(5, 7), rz: R(3, 4.5), yaw: yawA + Math.PI / 2 };
+      if (!bunkers.some((b) => Math.hypot(b.x - e.x, b.z - e.z) < 9)) bunkers.push(roundE(e));
+    }
+  }
+}
+
+function roundE(e) {
+  return { x: round(e.x), z: round(e.z), rx: round(e.rx), rz: round(e.rz), yaw: round(e.yaw, 1000) };
 }
 
 // Is (x, z) out of the way of play: away from the fairway line, green, hazards, sea and tee?
@@ -367,6 +554,10 @@ function clearOfPlay(hole, x, z, minFromPath) {
 const TREE_COLLIDERS = {
   round: { r: 1.8, h: 8 }, blossom: { r: 1.8, h: 8 }, cypress: { r: 1.2, h: 11 },
   pine: { r: 2, h: 10.5 }, snowpine: { r: 2, h: 10.5 }, palm: { r: 0.45, h: 9 }, cactus: { r: 0.9, h: 4.6 },
+  oak: { r: 2.4, h: 9 }, maple: { r: 2.4, h: 9 }, birch: { r: 0.9, h: 9 }, willow: { r: 2.6, h: 6.5 },
+  bamboo: { r: 1, h: 8.5 }, rain: { r: 0.5, h: 7.5 }, umbrella: { r: 0.45, h: 10.5 }, jpine: { r: 1.6, h: 6.5 },
+  olive: { r: 1.8, h: 4.6 }, banana: { r: 1.2, h: 4.5 }, gum: { r: 0.5, h: 11 }, topiary: { r: 1.1, h: 6 },
+  joshua: { r: 0.6, h: 5.5 },
 };
 
 // Spread the city's obstacles over the hole: in the landing zones (off the centre line, so a

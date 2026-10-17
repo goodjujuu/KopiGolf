@@ -75,4 +75,27 @@ export const BUILDING_STYLES = {
   mixed: [0x9aa6b2, 0xd2c4a6, 0x7d8a96, 0xb8aa8c, 0xc0c8d0],
   desert: [0xe6d2a8, 0xd8bc8a, 0xf0e2c4, 0xc8a878],
   colourful: [0xe8a87c, 0xf2d27a, 0x9ccbd8, 0xe7b0c4, 0xc8d89a, 0xf0e6d2],
+  eastern: [0xc8463a, 0xe8dcc4, 0xb83a30, 0xd8c8a8, 0x8a4a3a],
 };
+
+// Roof, dome and spire colours by city style.
+export const ROOF_STYLES = {
+  modern: [0x8fa3b8, 0xc9d3dc, 0x6f8296],
+  classic: [0xa8583a, 0x6a6a72, 0x8a4a32, 0x5a6470],
+  mixed: [0x6a6a72, 0x9a5a3a, 0x7a8a96],
+  desert: [0xf0e6d2, 0x3fa7a0, 0xd9a93a, 0xe8d8b8],
+  colourful: [0x3e3e48, 0x8a3a2a, 0x2f4f6f, 0x5a5a62],
+  eastern: [0x34403e, 0x2f5a4a, 0x4a3a32],
+};
+
+// Which building shapes each style uses (weights). TALL ones fill the skyline; LOW ones the
+// neighbourhood in front of it.
+export const BUILDING_KINDS = {
+  modern: { tall: { box: 3, setback: 2, cylinder: 2, slab: 2, spire: 1 }, low: { box: 2, slab: 1, gable: 1 } },
+  classic: { tall: { box: 2, gable: 3, spire: 1, dome: 1 }, low: { gable: 4, dome: 1 } },
+  mixed: { tall: { box: 3, setback: 2, tank: 2, spire: 1, gable: 1 }, low: { gable: 2, box: 1, tank: 1 } },
+  desert: { tall: { flat: 3, dome: 3, box: 1 }, low: { flat: 3, dome: 2 } },
+  colourful: { tall: { gable: 5, box: 1 }, low: { gable: 1 } },
+  eastern: { tall: { pagoda: 2, gable: 2, box: 2 }, low: { pagoda: 1, gable: 2 } },
+};
+export const LOW_KINDS = new Set(['gable', 'flat', 'pagoda', 'dome']);

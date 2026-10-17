@@ -29,8 +29,8 @@ export const cleanCode = (text) => String(text ?? '').toUpperCase().replace(/[^A
 // Who this device is. Kept so a refresh drops you back into your room. (On the local test
 // backend each tab is its own player.)
 // Bump when what devices send each other changes; friends on a different number get a
-// "refresh" heads-up. 2 = friends on the course (live lies and swings).
-export const NET_VERSION = 2;
+// "refresh" heads-up. 2 = friends on the course (live lies and swings). 3 = new hole layouts.
+export const NET_VERSION = 3;
 
 export function deviceId(local) {
   const store = local ? sessionStorage : localStorage;

@@ -4,7 +4,7 @@ import { BIOMES } from '../courses/biomes.js';
 import { surfaceAt, groundHeight, GREEN_STRETCH } from '../physics/course.js';
 import { seaDistance, seededRandom } from '../courses/generate.js';
 import { lambert, bakeGeometry } from './materials.js';
-import { buildTrees } from './trees.js';
+import { buildTrees, DEFAULT_LEAVES } from './trees.js';
 import { buildSkyline } from './skyline.js';
 import { buildLandmark } from './landmarks.js';
 import { buildObstacle } from './obstacles.js';
@@ -111,7 +111,8 @@ export function buildCourse(hole) {
   }
 
   // ---------- trees, skyline, landmarks ----------
-  group.add(buildTrees(hole.trees, biome, heightAt));
+  // A city can bring its own trees (and leaf colours, spec.leaves) on top of the biome's.
+  group.add(buildTrees(hole.trees, { ...biome, leaves: { ...DEFAULT_LEAVES, ...biome.leaves, ...(hole.leaves ?? {}) } }, heightAt));
   const skyline = hole.buildings?.length ? buildSkyline(hole.buildings, hole.buildingStyle, heightAt) : null;
   if (skyline) group.add(skyline.mesh);
   for (const l of hole.landmarks) {
