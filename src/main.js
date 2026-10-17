@@ -161,9 +161,32 @@ session.subscribe((s) => {
 });
 document.getElementById('btn-open-tour').addEventListener('click', () => session.set({ screen: 'tour' }));
 
-// The course sits behind the home screen as a live backdrop, seen from the look-ahead camera.
-session.set({ hole: activeHole });
-controller.startHole(activeHole);
+// The course sits behind the home screen as a live backdrop, seen from the look-ahead camera:
+// a random city to start with, then a different one every few seconds (with a soft fade
+// covering the swap) for as long as you're on the home screen.
+const BACKDROP_EVERY = 12000;
+const backdropFade = document.getElementById('backdrop-fade');
+let backdropIndex = Math.floor(Math.random() * CATALOG.tour.count);
+const showBackdrop = (index) => {
+  const hole = CATALOG.tour.hole(index);
+  if (!hole) return;
+  activeHole = hole;
+  session.set({ hole });
+  controller.startHole(hole, session.state.settings);
+};
+showBackdrop(backdropIndex);
+setInterval(() => {
+  const s = session.state;
+  if (s.screen !== 'home' || document.hidden || s.lineup) return;
+  backdropFade?.classList.add('is-on');
+  setTimeout(() => {
+    if (session.state.screen === 'home') {
+      backdropIndex = (backdropIndex + 1 + Math.floor(Math.random() * (CATALOG.tour.count - 1))) % CATALOG.tour.count;
+      showBackdrop(backdropIndex);
+    }
+    setTimeout(() => backdropFade?.classList.remove('is-on'), 250); // let the new course draw first
+  }, 700);
+}, BACKDROP_EVERY);
 
 let lastTimeOfDay = session.state.settings.timeOfDay;
 session.subscribe((s) => {

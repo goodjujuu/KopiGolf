@@ -1194,3 +1194,7 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .wager-none { font-weight: 700; font-size: 13px; color: var(--card-muted); }
 .match-pot { display: inline-flex; align-items: center; gap: 8px; margin: 4px 0 0; padding: 6px 14px; border-radius: 999px; background: rgba(232, 163, 23, 0.16); font-weight: 800; font-size: 14px; }
 .match-pot.is-win { background: rgba(232, 163, 23, 0.3); font-size: 15px; }
+
+/* Home backdrop: a soft fade that covers the swap to the next city */
+.backdrop-fade { position: absolute; inset: 0; background: #bfe6f2; opacity: 0; pointer-events: none; transition: opacity 0.65s ease; }
+.backdrop-fade.is-on { opacity: 1; }
