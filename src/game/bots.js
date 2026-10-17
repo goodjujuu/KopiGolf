@@ -25,7 +25,7 @@ export const SKILLS = {
 // Who plays at what level.
 export const BOT_SKILL = {
   garet: 'pro', pramoth: 'amateur', drt: 'clubpro', steven: 'rookie', henny: 'amateur', eyas: 'clubpro',
-  faly: 'pro', weixiong: 'legend', gleb: 'rookie', matrickseah: 'clubpro', yunyu: 'pro', elloise: 'legend', javier: 'amateur', keenan: 'rookie', sangwon: 'pro',
+  faly: 'pro', weixiong: 'legend', gleb: 'rookie', matrickseah: 'clubpro', yunyu: 'pro', elloise: 'legend', javier: 'amateur', keenan: 'rookie', sangwon: 'pro', wolfgang: 'clubpro',
 };
 
 // Pick `count` different crew members at random, leaving out anyone in `exclude` (preset ids).
@@ -35,7 +35,7 @@ export function pickBots(count, { exclude = [], random = Math.random } = {}) {
     const j = Math.floor(random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return pool.slice(0, count).map((p) => ({ id: p.id, name: p.name.split(' ')[0] === 'Elloise' ? 'Elloise' : p.name, fullName: p.name, look: p.look, skill: BOT_SKILL[p.id] ?? 'amateur' }));
+  return pool.slice(0, count).map((p) => ({ id: p.id, name: p.short ?? (p.name.split(' ')[0] === 'Elloise' ? 'Elloise' : p.name), fullName: p.name, look: p.look, skill: BOT_SKILL[p.id] ?? 'amateur' }));
 }
 
 const MAX_SIM_STEPS = 60 * 25;

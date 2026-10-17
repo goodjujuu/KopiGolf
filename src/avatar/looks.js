@@ -140,7 +140,7 @@ export const LOCKER_SECTIONS = {
     { id: 'extras', label: 'Extras', controls: [
       { type: 'choice', key: 'neck', label: 'Neck', options: [['none', 'None'], ['chain', 'Chain'], ['pendant', 'Pendant'], ['tie', 'Tie'], ['bowtie', 'Bow tie'], ['scarf', 'Scarf'], ['pearls', 'Pearls']] },
       { type: 'colour', key: 'neckColour', label: 'Neck colour', palette: [...METALS, ...CLOTHING] },
-      { type: 'choice', key: 'wrist', label: 'Wrist', options: [['none', 'None'], ['watch', 'Watch'], ['sweatband', 'Sweatband'], ['bracelet', 'Bracelet']] },
+      { type: 'choice', key: 'wrist', label: 'Wrist', options: [['none', 'None'], ['watch', 'Watch'], ['sweatband', 'Sweatband'], ['bracelet', 'Bracelet'], ['captain', "Captain's armband"]] },
       { type: 'colour', key: 'wristColour', label: 'Wrist colour', palette: [...METALS, ...CLOTHING] },
       { type: 'choice', key: 'ears', label: 'Earrings', options: [['none', 'None'], ['studs', 'Studs'], ['hoops', 'Hoops'], ['footballs', 'Mini footballs']] },
       { type: 'colour', key: 'earColour', label: 'Earring colour', palette: METALS },
@@ -386,6 +386,23 @@ export const GOLFER_PRESETS = [
       gloves: 'none', glovesColour: '#ffffff',
       neck: 'none', wrist: 'bracelet', wristColour: '#c9ced4', ears: 'studs', earColour: '#c9ced4',
       ballColour: '#7cf05a', gripColour: '#2b2f33',
+    },
+  },
+  {
+    id: 'wolfgang', name: 'Wei "Wolfgang" Yang', short: 'Wolfgang', blurb: 'Lanky street legend, varsity football captain',
+    look: {
+      build: 'slim', height: 'xtall', skin: '#efc095', tattoos: 'inked',
+      eyes: 'almond', eyeColour: '#1c1712', brows: 'determined', nose: 'long', mouth: 'smirk', cheeks: 'none',
+      hair: 'buzz', hairColour: '#1c1712', facialHair: 'stubble',
+      hat: 'backwards', hatColour: '#22262c', hatAccent: '#e04848', hatPattern: 'solid',
+      glasses: 'sunglasses', glassesColour: '#22262c', lensColour: '#1a2230',
+      top: 'jersey', topColour: '#22262c', topAccent: '#e04848', topPattern: 'solid',
+      bottoms: 'joggers', bottomsColour: '#22262c', bottomsAccent: '#e04848', bottomsPattern: 'solid',
+      socksStyle: 'crew', socksColour: '#ffffff', socksPattern: 'solid',
+      shoesStyle: 'hightop', shoesColour: '#ffffff', shoesAccent: '#e04848', soleColour: '#22262c',
+      gloves: 'none', glovesColour: '#22262c',
+      neck: 'chain', neckColour: '#d9a93a', wrist: 'captain', wristColour: '#f2c84b', ears: 'studs', earColour: '#d9a93a',
+      headFinish: 'black', shaftColour: '#2a2d33', gripColour: '#e04848', ballColour: '#ff5050',
     },
   },
 ];

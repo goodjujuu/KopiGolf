@@ -96,6 +96,11 @@ export function createRoomApi(backend, me) {
       return backend.update(`${roomPath(code)}/players/${me}`, { look, v: NET_VERSION });
     },
 
+    // KopiBucks this player puts in the pot (set in the lobby).
+    setWager(code, amount) {
+      return backend.update(`${roomPath(code)}/players/${me}`, { wager: amount });
+    },
+
     setLive(code, holeNo, patch) {
       return backend.update(`${roomPath(code)}/live/${holeNo}/${me}`, patch);
     },

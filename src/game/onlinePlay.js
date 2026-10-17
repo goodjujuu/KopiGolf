@@ -256,6 +256,7 @@ export function createOnlinePlay({ session, controller, catalog, toast, getLook 
       return url.toString();
     },
     clearError: () => patch({ error: '' }),
+    setWager: (amount) => run(() => api.setWager(code, amount)),
     // Locker changed: friends see the new look from the next update.
     setLook(look) {
       if (api && code) api.setLook(code, look).catch(() => {});

@@ -290,7 +290,14 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
       cuff.rotation.x = PI / 2;
       shoulder.add(cuff);
     }
-    if (side === -1 && look.wrist && look.wrist !== 'none') addWristwear(shoulder, look, limbR, handY + limbR * 1.5, longSleeves || vestLong);
+    if (side === -1 && look.wrist === 'captain') { // captain's armband: round the upper arm, with a C
+      const band = mesh(new THREE.CylinderGeometry(limbR * 1.28, limbR * 1.28, upperArm * 0.32, 16, 1, true), mat(look.wristColour, { shine: 30 }), 0, -upperArm * 0.5, 0);
+      band.material.side = THREE.DoubleSide;
+      shoulder.add(band);
+      const c = mesh(new THREE.PlaneGeometry(upperArm * 0.3, upperArm * 0.3), numberMat('#22262c', 'C'), -limbR * 1.3, -upperArm * 0.5, 0);
+      c.rotation.y = -PI / 2;
+      shoulder.add(c);
+    } else if (side === -1 && look.wrist && look.wrist !== 'none') addWristwear(shoulder, look, limbR, handY + limbR * 1.5, longSleeves || vestLong);
     if (side === 1) rightHandWorld = hand;
   }
 
@@ -948,7 +955,7 @@ function addGlasses(head, look) {
   const shadesByDefault = ['sunglasses', 'aviators', 'sport', 'goggles', 'heart'].includes(look.glasses);
   const lensMat = mat(look.lensColour ?? '#1a2230', { opacity: clear ? 0.25 : 0.82, shine: 95 });
   const showLens = shadesByDefault || !clear;
-  const z = HEAD_R * 0.97;
+  const z = HEAD_R * 0.97 + 0.012; // in front of the eyes, so tinted lenses really tint
   const y = 0.015;
   const style = look.glasses;
 
@@ -985,10 +992,9 @@ function addGlasses(head, look) {
     } else if (style === 'goggles') {
       rim = mesh(new THREE.TorusGeometry(0.036, 0.012, 8, 20), frame, x, y, z + 0.006);
     } else if (style === 'heart') {
-      // Hearts sit a touch further out so even big eyes stay behind them.
-      rim = heartMesh(0.046, frame, x, y, z + 0.012);
+      rim = heartMesh(0.046, frame, x, y, z);
       head.add(rim);
-      const lens = heartMesh(0.038, lensMat, x, y, z + 0.014);
+      const lens = heartMesh(0.038, lensMat, x, y, z + 0.002);
       head.add(lens);
       rim = null;
     } else {

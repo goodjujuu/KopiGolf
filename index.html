@@ -325,6 +325,18 @@
       </div>
       <p class="tour-group">Players</p>
       <ol class="lobby-players" id="lobby-players"></ol>
+      <div class="wager-box">
+        <p class="tour-group">Wager KopiBucks</p>
+        <div class="wager-row">
+          <input class="wager-range" id="wager-range" type="range" min="1" max="10" step="1" value="5" aria-label="Wager, 1 to 10 KopiBucks">
+          <label class="wager-amount">
+            <input id="wager-input" type="number" min="1" max="999" step="1" inputmode="numeric" value="5" aria-label="Wager amount in KopiBucks">
+            <span class="kb" aria-hidden="true">K</span>
+          </label>
+        </div>
+        <button class="primary-btn wager-btn" id="btn-wager" type="button">Confirm wager</button>
+        <ul class="wager-list" id="wager-list" aria-live="polite"></ul>
+      </div>
       <p class="tour-note lobby-note" id="lobby-note"></p>
       <button class="primary-btn lobby-start" id="btn-lobby-start" type="button">Start match</button>
       <button class="text-btn" id="btn-lobby-leave-2" type="button">Leave room</button>

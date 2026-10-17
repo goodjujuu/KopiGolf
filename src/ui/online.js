@@ -9,6 +9,13 @@ import { NET_VERSION } from '../net/online.js';
 // result, final scorecard).
 
 const NAME_KEY = 'kopigolf.onlineName';
+const MAX_WAGER = 999;
+
+// KopiBucks in the pot: everyone's confirmed wager (only players in the match once it starts).
+function potOf(room, order = null) {
+  const ids = order ?? Object.keys(room.players ?? {});
+  return ids.reduce((n, id) => n + (Number(room.players?.[id]?.wager) || 0), 0);
+}
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createOnlineUI(session, actions, { toast }) {
@@ -53,6 +60,35 @@ export function createOnlineUI(session, actions, { toast }) {
     } catch { /* share sheet closed: fall through to copying */ }
     try { await navigator.clipboard.writeText(url); toast('Invite link copied', code); } catch { toast(`Room code: ${code}`, url); }
   });
+
+  // ----- Wager: a slider from 1 to 10, or type any amount; confirm to put it in -----
+  const range = $('wager-range');
+  const amountInput = $('wager-input');
+  const wagerBtn = $('btn-wager');
+  const clampWager = (v) => Math.max(1, Math.min(MAX_WAGER, Math.round(Number(v) || 0)));
+  let wagerDirty = false;
+  range.addEventListener('input', () => { amountInput.value = range.value; wagerDirty = true; refreshWagerBtn(); });
+  amountInput.addEventListener('input', () => {
+    wagerDirty = true;
+    const v = Number(amountInput.value);
+    if (v >= 1) range.value = String(Math.min(10, Math.round(v)));
+    refreshWagerBtn();
+  });
+  amountInput.addEventListener('blur', () => { amountInput.value = String(clampWager(amountInput.value)); range.value = String(Math.min(10, Number(amountInput.value))); });
+  wagerBtn.addEventListener('click', async () => {
+    const n = clampWager(amountInput.value);
+    amountInput.value = String(n);
+    await actions.setWager(n);
+    wagerDirty = false;
+    refreshWagerBtn();
+  });
+  function refreshWagerBtn() {
+    const o = session.state.online ?? {};
+    const mine = Number(o.room?.players?.[o.me]?.wager ?? 0);
+    const n = clampWager(amountInput.value);
+    wagerBtn.textContent = mine && mine === n && !wagerDirty ? `Wager confirmed ✓` : mine ? `Change wager to ${n}` : `Confirm wager · ${n}`;
+    wagerBtn.classList.toggle('is-done', !!mine && mine === n && !wagerDirty);
+  }
 
   // ----- Match overlay -----
   const overlay = $('online-overlay');
@@ -111,6 +147,19 @@ export function createOnlineUI(session, actions, { toast }) {
         ${p.online === false ? '<span class="lobby-away">away</span>' : ''}
         ${p.online !== false && id !== me && Number(p.v ?? 0) < NET_VERSION ? '<span class="lobby-old">needs refresh</span>' : ''}
       </li>`).join('');
+    // Wagers: "Name wagers 5 KopiBucks" for everyone who's confirmed, and the pot.
+    const mine = Number(room.players?.[me]?.wager ?? 0);
+    if (mine && !wagerDirty && document.activeElement !== amountInput) {
+      amountInput.value = String(mine);
+      range.value = String(Math.min(10, mine));
+    }
+    refreshWagerBtn();
+    const wagers = players.filter(([, p]) => Number(p.wager) > 0);
+    const pot = potOf(room);
+    $('wager-list').innerHTML = wagers.map(([id, p]) => `
+      <li class="wager-line"><span class="kb" aria-hidden="true">K</span><b>${esc(p.name || 'Player')}${id === me ? ' (you)' : ''}</b>&nbsp;wagers ${Number(p.wager)} KopiBucks</li>`).join('')
+      + (wagers.length ? `<li class="wager-pot">Pot: <b>${pot} KopiBucks</b> · winner takes all</li>` : '<li class="wager-none">No wagers yet. Slide, then confirm.</li>');
+
     const isHost = room.host === me;
     const ready = players.filter(([, p]) => p.online !== false).length;
     const startBtn = $('btn-lobby-start');
@@ -172,6 +221,7 @@ const OVERLAY = {
       <p class="result-kicker">${holeLabel(v)} · Online</p>
       ${courseBox(hole)}
       ${v.k > 0 ? `<p class="match-label">Holes won</p>${winsLine(v)}` : ''}
+      ${potOf(o.room, v.order) ? `<p class="match-pot"><span class="kb" aria-hidden="true">K</span> Pot: ${potOf(o.room, v.order)} KopiBucks</p>` : ''}
       <p class="match-label">Everyone plays at once</p>
       ${progressList(o)}
       <button class="primary-btn" type="button" data-action="teeoff">Tee off</button>
@@ -243,6 +293,7 @@ const OVERLAY = {
       <div class="match-trophy" aria-hidden="true">🏆</div>
       <h2 class="match-name">${iWon ? 'You win!' : `${esc(champ.name)} wins!`}</h2>
       <p class="result-line">${m.wonOnStrokes ? `Level on holes, won on fewer strokes (${reg[m.champion]})` : `${m.wins[m.champion]} ${m.wins[m.champion] === 1 ? 'hole' : 'holes'} won`}</p>
+      ${potOf(o.room, v.order) ? `<p class="match-pot is-win"><span class="kb" aria-hidden="true">K</span> ${iWon ? 'You win' : `${esc(champ.name)} wins`} the pot: ${potOf(o.room, v.order)} KopiBucks</p>` : ''}
       <table class="match-table match-card-table">
         <thead><tr><th scope="col">Player</th>${head}<th scope="col">Won</th><th scope="col" title="Total strokes over the three holes">Strokes</th></tr></thead>
         <tbody>${rows}</tbody>
