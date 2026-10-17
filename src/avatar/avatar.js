@@ -492,6 +492,7 @@ const EYE_SHAPES = {
   wide: { w: 0.044, h: 0.046 },
   happy: { w: 0.034, h: 0.012, arc: true },
   lashes: { w: 0.036, h: 0.04, lashes: true },
+  narrow: { w: 0.036, h: 0.017 },
 };
 
 function addFace(head, look, skin) {
@@ -754,6 +755,15 @@ function addHair(head, look) {
         back.scale.set(1.08, 1, 0.55);
         head.add(back);
       }
+      return;
+    }
+    case 'fringe': {
+      // Straight bangs across the forehead, sitting just above the eyebrows.
+      head.add(hairCap(r, 1.5, h, 0.12));
+      const bangs = mesh(new THREE.CylinderGeometry(0.112, 0.168, 0.07, 22, 1, false, -0.8, 1.6), h, 0, 0.116, 0);
+      bangs.scale.z = 0.98;
+      head.add(bangs);
+      if (!hatOn) head.add(hairCap(r, 1.3, h, 0.95)); // tipped back: covers the back down to the neck
       return;
     }
     case 'pigtails': {

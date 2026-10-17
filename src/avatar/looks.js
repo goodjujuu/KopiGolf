@@ -85,7 +85,7 @@ export const LOCKER_SECTIONS = {
       { type: 'choice', key: 'tattoos', label: 'Tattoos', options: [['none', 'None'], ['arms', 'Forearms'], ['inked', 'Arms + neck']] },
     ] },
     { id: 'face', label: 'Face', zoom: 'head', controls: [
-      { type: 'choice', key: 'eyes', label: 'Eyes', options: [['round', 'Round'], ['almond', 'Almond'], ['sleepy', 'Sleepy'], ['wide', 'Wide'], ['happy', 'Happy'], ['lashes', 'Lashes']] },
+      { type: 'choice', key: 'eyes', label: 'Eyes', options: [['round', 'Round'], ['almond', 'Almond'], ['sleepy', 'Sleepy'], ['wide', 'Wide'], ['happy', 'Happy'], ['lashes', 'Lashes'], ['narrow', 'Narrow']] },
       { type: 'colour', key: 'eyeColour', label: 'Eye colour', palette: EYE_COLOURS },
       { type: 'choice', key: 'brows', label: 'Eyebrows', options: [['straight', 'Straight'], ['arched', 'Arched'], ['thick', 'Thick'], ['determined', 'Determined'], ['worried', 'Worried'], ['bushy', 'Extra bushy']] },
       { type: 'choice', key: 'nose', label: 'Nose', options: [['button', 'Button'], ['round', 'Round'], ['long', 'Long'], ['wide', 'Wide']] },
@@ -93,7 +93,7 @@ export const LOCKER_SECTIONS = {
       { type: 'choice', key: 'cheeks', label: 'Cheeks', options: [['none', 'Plain'], ['rosy', 'Rosy'], ['freckles', 'Freckles'], ['lots', 'Lots of freckles']] },
     ] },
     { id: 'hair', label: 'Hair', zoom: 'head', controls: [
-      { type: 'choice', key: 'hair', label: 'Style', options: [['bald', 'Bald'], ['buzz', 'Buzz'], ['short', 'Short'], ['sidepart', 'Side part'], ['spiky', 'Spiky'], ['mohawk', 'Mohawk'], ['afro', 'Afro'], ['bun', 'Bun'], ['ponytail', 'Ponytail'], ['pigtails', 'Pigtails'], ['undercut', 'Undercut'], ['curtains', 'Curtains'], ['long', 'Long'], ['bob', 'Bob'], ['messy', 'Messy'], ['pompadour', 'Pompadour']] },
+      { type: 'choice', key: 'hair', label: 'Style', options: [['bald', 'Bald'], ['buzz', 'Buzz'], ['short', 'Short'], ['sidepart', 'Side part'], ['spiky', 'Spiky'], ['mohawk', 'Mohawk'], ['afro', 'Afro'], ['bun', 'Bun'], ['ponytail', 'Ponytail'], ['pigtails', 'Pigtails'], ['undercut', 'Undercut'], ['curtains', 'Curtains'], ['fringe', 'Fringe'], ['long', 'Long'], ['bob', 'Bob'], ['messy', 'Messy'], ['pompadour', 'Pompadour']] },
       { type: 'colour', key: 'hairColour', label: 'Hair colour', palette: HAIR_COLOURS },
       { type: 'choice', key: 'facialHair', label: 'Facial hair', options: [['none', 'None'], ['stubble', 'Stubble'], ['moustache', 'Moustache'], ['goatee', 'Goatee'], ['beard', 'Full beard']] },
     ] },
@@ -392,10 +392,10 @@ export const GOLFER_PRESETS = [
     id: 'wolfgang', name: 'Wei "Wolfgang" Yang', short: 'Wolfgang', blurb: 'Lanky street legend, varsity football captain',
     look: {
       build: 'slim', height: 'xtall', skin: '#efc095', tattoos: 'inked',
-      eyes: 'almond', eyeColour: '#1c1712', brows: 'determined', nose: 'long', mouth: 'smirk', cheeks: 'none',
-      hair: 'buzz', hairColour: '#1c1712', facialHair: 'stubble',
-      hat: 'backwards', hatColour: '#22262c', hatAccent: '#e04848', hatPattern: 'solid',
-      glasses: 'sunglasses', glassesColour: '#22262c', lensColour: '#1a2230',
+      eyes: 'narrow', eyeColour: '#1c1712', brows: 'determined', nose: 'button', mouth: 'smirk', cheeks: 'none',
+      hair: 'fringe', hairColour: '#1c1712', facialHair: 'none',
+      hat: 'none', hatColour: '#22262c', hatAccent: '#e04848', hatPattern: 'solid',
+      glasses: 'none', glassesColour: '#22262c', lensColour: '#1a2230',
       top: 'jersey', topColour: '#22262c', topAccent: '#e04848', topPattern: 'solid',
       bottoms: 'joggers', bottomsColour: '#22262c', bottomsAccent: '#e04848', bottomsPattern: 'solid',
       socksStyle: 'crew', socksColour: '#ffffff', socksPattern: 'solid',
