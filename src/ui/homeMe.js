@@ -10,6 +10,8 @@ export function createHomeMe(session) {
   let preview = null;
   let look = null;
   let running = false;
+  // An old cached page without the golfer spot: skip it rather than stop the game loading.
+  if (!btn || !canvas || !nameEl) return { setLook() {} };
 
   btn.addEventListener('click', () => session.set({ screen: 'locker' }));
 
@@ -19,7 +21,7 @@ export function createHomeMe(session) {
     nameEl.textContent = s.profile?.name ?? '';
     if (show && !running) {
       try {
-        if (!preview) { preview = createPreview(canvas); if (look) preview.setLook(look); }
+        if (!preview) { preview = createPreview(canvas); preview.frame('hero'); if (look) preview.setLook(look); }
         preview.start();
         running = true;
       } catch (e) {

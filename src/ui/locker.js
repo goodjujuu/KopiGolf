@@ -215,6 +215,9 @@ export function createPreview(canvas) {
     if (kind === 'head') {
       camTarget.set(0, headY, 0);
       camPos.set(0, headY + 0.05, 1.6);
+    } else if (kind === 'hero') { // home screen: close in, the golfer fills the frame
+      camTarget.set(0, height * 0.47, 0);
+      camPos.set(0, height * 0.56, 2.55);
     } else if (kind === 'club') {
       camTarget.set(0.15, height * 0.4, 0);
       camPos.set(0.4, height * 0.55, 3.1);

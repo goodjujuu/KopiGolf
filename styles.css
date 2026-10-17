@@ -1133,12 +1133,37 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 }
 .home-me[hidden] { display: none; }
 .home-me:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
-.home-me-canvas { display: block; width: 150px; height: 170px; pointer-events: none; }
+.home-me-canvas { display: block; width: min(82vw, 330px); height: clamp(230px, 38vh, 360px); pointer-events: none; }
 .home-me-name {
-  margin-top: -10px; padding: 4px 16px; border-radius: 999px; background: var(--kopi); color: var(--card-ink);
-  font-family: var(--font-display); font-size: 24px; line-height: 1.1; box-shadow: 0 3px 10px var(--ink-shade);
+  margin-top: -14px; padding: 5px 20px; border-radius: 999px; background: var(--kopi); color: var(--card-ink);
+  font-family: var(--font-display); font-size: 28px; line-height: 1.1; box-shadow: 0 3px 10px var(--ink-shade);
   max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .home-me-edit { margin-top: 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; text-shadow: 0 1px 3px var(--ink-shade); }
 .home-me:active .home-me-name { transform: scale(0.96); }
 .locker.is-setup .locker-title { font-size: clamp(22px, 6.4vw, 30px); line-height: 1.05; }
+
+/* ---------- Home: your golfer big, the buttons compact ---------- */
+.home { padding-top: calc(env(safe-area-inset-top, 0px) + 18px); }
+.home-inner { gap: 10px; }
+.home-head { gap: 0; }
+.home-title { font-size: clamp(40px, 12.5vw, 56px); }
+.home-cards { gap: 8px; }
+.home-play { min-height: 0; gap: 12px; padding: 12px 12px 12px 16px; border-radius: 18px; box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28), inset 0 -3px 0 rgba(0, 0, 0, 0.2); }
+.home-play-text { gap: 2px; }
+.home-play-kicker { font-size: 10px; }
+.home-play-title { font-size: clamp(22px, 6.6vw, 27px); }
+.home-play-sub { font-size: 12px; }
+.home-play-go { width: 42px; height: 42px; }
+.home-play-go svg { width: 22px; height: 22px; }
+.home-solo { min-height: 0; }
+.home-card { gap: 10px; padding: 12px 14px; border-radius: 16px; box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22); }
+.home-card h2 { font-size: 21px; }
+.home-card p { font-size: 12px; }
+.home-link-title { font-size: 19px; }
+.home .seg label { min-height: 36px; font-size: 13px; }
+.home .seg-field { gap: 4px; }
+.home .seg-field legend { margin-bottom: 4px; }
+.home .home-card .primary-btn { min-height: 44px; }
+.home-link { padding-block: 10px; }
+.home-link-sub { font-size: 12px; }
