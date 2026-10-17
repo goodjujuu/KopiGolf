@@ -143,6 +143,11 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
         ui.num.textContent = v.match.holes[v.k].playoff ? 'SD' : v.k + 1;
         ui.meta.textContent = `Online ${s.online.code} · Par ${s.hole.par} · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
       }
+      if (s.mode === 'solo' && s.solo) {
+        const m = s.solo.match;
+        ui.num.textContent = m.holes[m.holeNo].playoff ? 'SD' : m.holeNo + 1;
+        ui.meta.textContent = `${s.solo.kind === '1v1' ? '1v1' : 'Tournament'} · Par ${s.hole.par} · ${s.strokes} ${s.strokes === 1 ? 'stroke' : 'strokes'}`;
+      }
       if (s.mode === 'match' && s.match) {
         const mh = s.match.holes[s.match.holeNo];
         const who = s.match.players[mh.players[s.match.turn]]?.name ?? '';
@@ -160,7 +165,7 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
     if (ui.cancelSwing.hidden === swinging) ui.cancelSwing.hidden = !swinging;
     if (!swinging) ui.cancelSwing.classList.remove('is-hot');
     ui.cancelSwing.classList.toggle('is-right', s.swingSide === 'right');
-    ui.restartBtn.hidden = s.mode === 'match' || s.mode === 'online'; // no do-overs in a match
+    ui.restartBtn.hidden = s.mode === 'match' || s.mode === 'online' || s.mode === 'solo'; // no do-overs in a match
 
     // Wind chip: arrow shows where the wind blows relative to the way you're aiming.
     const windOn = s.wind && s.wind.speed >= 0.5;
@@ -187,7 +192,7 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
 
     ui.mapBtn.setAttribute('aria-pressed', String(s.mapOpen));
     ui.lookBtn.setAttribute('aria-pressed', String(s.lookAhead));
-    const here = s.mode === 'online' ? (s.friendsHere ?? []) : [];
+    const here = s.mode === 'online' || s.mode === 'solo' ? (s.friendsHere ?? []) : [];
     ui.friendsBtn.hidden = !here.length;
     ui.friendsCount.textContent = here.length > 1 ? String(here.length) : '';
     const watched = s.watching ? here.find((f) => f.id === s.watching) : null;
@@ -225,7 +230,7 @@ export function createHUD(session, { onPlayAgain, onNextHole, onSelectClub, onRe
 
     if (s.result !== lastResult) {
       lastResult = s.result;
-      const ownCards = s.mode === 'match' || s.mode === 'online'; // matches show their own cards
+      const ownCards = s.mode === 'match' || s.mode === 'online' || s.mode === 'solo'; // matches show their own cards
       ui.result.hidden = !s.result || ownCards;
       if (s.result && !ownCards) {
         ui.resultKicker.textContent = s.hole ? (s.hole.practice ? `Practice · ${s.hole.name}` : `Hole ${s.hole.number} · ${s.hole.city}`) : '';

@@ -12,6 +12,8 @@ import { createHome, loadSavedSettings } from './ui/home.js';
 import { createLocker } from './ui/locker.js';
 import { createTourScreen } from './ui/tour.js';
 import { createLineup } from './ui/lineup.js';
+import { createSoloPlay } from './game/soloPlay.js';
+import { createSoloUI } from './ui/solo.js';
 import { lookForName } from './avatar/looks.js';
 
 // Entry point: wires state, 3D scene, rules, input and HUD together, and handles screen-level
@@ -36,7 +38,8 @@ const playTour = (index) => {
 };
 const goHome = () => {
   if (session.state.mode === 'online') online.leave();
-  session.set({ screen: 'home', mapOpen: false, bagOpen: false, match: null, mode: session.state.mode === 'match' || session.state.mode === 'online' ? 'tour' : session.state.mode });
+  if (session.state.mode === 'solo') solo.quit();
+  session.set({ screen: 'home', mapOpen: false, bagOpen: false, match: null, mode: ['match', 'online', 'solo'].includes(session.state.mode) ? 'tour' : session.state.mode });
 };
 
 // ---------- Random best of 3 (pass the phone) ----------
@@ -113,6 +116,9 @@ createLineup(session);
 // Online: friends on their own phones.
 var online = createOnlinePlay({ session, controller, catalog: CATALOG, toast: (t, sub) => hud.toast(t, sub), getLook: () => myLook, friends: game.friends });
 createOnlineUI(session, online, { toast: (t, sub) => hud.toast(t, sub) });
+// Solo: you against the crew (bots).
+var solo = createSoloPlay({ session, controller, catalog: CATALOG, friends: game.friends, toast: (t, sub) => hud.toast(t, sub), getLook: () => myLook });
+createSoloUI(session, solo, { getLook: () => myLook });
 createMatchOverlay(session, {
   onTeeOff: () => {
     const m = session.state.match;
@@ -141,7 +147,7 @@ controller.startHole(activeHole);
 let lastTimeOfDay = session.state.settings.timeOfDay;
 session.subscribe((s) => {
   game.setLookAhead(s.lookAhead || s.screen === 'home');
-  game.setWatch(s.mode === 'online' && s.screen === 'play' ? s.watching : null);
+  game.setWatch((s.mode === 'online' || s.mode === 'solo') && s.screen === 'play' ? s.watching : null);
   // Preview the time of day while choosing it on the home screen.
   if (s.settings.timeOfDay !== lastTimeOfDay) {
     lastTimeOfDay = s.settings.timeOfDay;
@@ -158,7 +164,7 @@ new ResizeObserver(sizeStage).observe(stage);
 sizeStage();
 
 // Pause the course while the tab is hidden or the Locker (with its own preview) is open.
-const updatePaused = () => game.setPaused(document.hidden || session.state.screen === 'locker' || session.state.screen === 'tour' || session.state.screen === 'lobby' || !!session.state.lineup);
+const updatePaused = () => game.setPaused(document.hidden || session.state.screen === 'locker' || session.state.screen === 'tour' || session.state.screen === 'lobby' || session.state.screen === 'solo' || !!session.state.lineup);
 document.addEventListener('visibilitychange', updatePaused);
 session.subscribe(updatePaused);
 
@@ -174,5 +180,5 @@ game.start(
     loading.classList.add('is-done');
     setTimeout(() => { loading.hidden = true; }, 600);
   },
-  (dt) => controller.update(dt)
+  (dt) => { controller.update(dt); solo.update(dt); }
 );

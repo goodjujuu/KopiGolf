@@ -91,7 +91,7 @@ function holeLabel(m, hole = currentHole(m)) {
   return hole.playoff ? 'Sudden death' : `Hole ${m.holeNo + 1} of ${REGULATION_HOLES}`;
 }
 
-function windText(hole) {
+export function windText(hole) {
   const level = WIND_LEVELS[hole.windLevel];
   if (!hole.wind || hole.wind.speed < 0.5) return level.label;
   return `${level.label} · ${Math.round(hole.wind.speed * MS_TO_MPH)} mph`;
@@ -188,7 +188,7 @@ const VIEWS = {
 };
 
 // After three holes, level on holes won: say it was settled on total strokes (or goes to sudden death).
-function tiebreakLine(m) {
+export function tiebreakLine(m) {
   if (!m.tiebreak) return '';
   const parts = m.tiebreak.players.map((p, i) => `${esc(m.players[p].name)} ${m.tiebreak.totals[i]}`).join(' · ');
   return m.wonOnStrokes

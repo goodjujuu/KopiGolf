@@ -54,6 +54,8 @@ MODULES = [
     "src/net/backend.js",
     "src/net/online.js",
     "src/game/onlinePlay.js",
+    "src/game/bots.js",
+    "src/game/soloPlay.js",
     "src/ui/clubArt.js",
     "src/hud.js",
     "src/ui/home.js",
@@ -61,6 +63,7 @@ MODULES = [
     "src/ui/tour.js",
     "src/ui/match.js",
     "src/ui/online.js",
+    "src/ui/solo.js",
     "src/ui/lineup.js",
     "src/main.js",
 ]

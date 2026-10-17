@@ -1038,3 +1038,71 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .lineup-foot p { margin: 0; font-weight: 800; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.85; }
 .lineup-progress { width: min(60vw, 240px); height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.35); overflow: hidden; }
 .lineup-progress span { display: block; height: 100%; background: #fff; transform-origin: left; transform: scaleX(0); }
+
+/* ---------- Play (solo vs the crew) ---------- */
+.home-solo { min-height: 104px; background: linear-gradient(135deg, #f59a45 0%, #d8562a 75%); color: #fff; }
+.home-solo .home-play-kicker { color: #ffe9c7; }
+.home-solo .home-play-sub { opacity: 0.95; }
+.home-solo .home-play-go { background: #fff; color: #d8562a; }
+.home-solo .home-play-go svg { margin-left: 3px; }
+
+.solo-panel { padding-inline: max(var(--edge), env(safe-area-inset-left, 0px)) max(var(--edge), env(safe-area-inset-right, 0px)); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
+.solo-mode {
+  display: flex; align-items: center; gap: 16px; min-height: 104px; padding: 16px 18px;
+  border: 0; border-radius: 22px; background: linear-gradient(135deg, #1f4d36 0%, var(--card-ink) 70%);
+  color: var(--card); font-family: var(--font-body); text-align: left; cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18); transition: transform 0.12s ease;
+}
+.solo-mode.is-tour { background: linear-gradient(135deg, #f59a45 0%, #d8562a 75%); color: #fff; }
+.solo-mode:active { transform: scale(0.98); }
+.solo-mode:focus-visible { outline: 3px solid var(--card-ink); outline-offset: 3px; }
+.solo-mode-badge {
+  display: grid; place-items: center; flex: none; width: 64px; height: 64px; border-radius: 18px;
+  background: rgba(255, 255, 255, 0.16); font-family: var(--font-display); font-size: 26px;
+}
+.solo-mode-text { display: grid; gap: 4px; min-width: 0; }
+.solo-mode-text b { font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1; }
+.solo-mode-text small { font-weight: 700; font-size: 14px; opacity: 0.9; }
+.solo-note { padding-inline: 0; }
+.solo-stars { color: #e8a317; letter-spacing: 1px; font-size: 12px; white-space: nowrap; }
+.solo-stars i { font-style: normal; color: rgba(22, 58, 42, 0.18); }
+
+.solo-search, .solo-found { display: grid; justify-items: center; gap: 8px; padding: 26px 8px; text-align: center; }
+.solo-search h3, .solo-found-kicker { margin: 10px 0 0; font-family: var(--font-display); font-weight: 400; font-size: 34px; line-height: 1.05; }
+.solo-search p { margin: 0; font-weight: 700; color: var(--card-muted); }
+.solo-timer { font-variant-numeric: tabular-nums; font-size: 22px; color: var(--card-ink) !important; }
+.solo-radar { position: relative; display: grid; place-items: center; width: 150px; height: 150px; }
+.solo-radar span { position: relative; font-size: 44px; animation: bob 1.4s ease-in-out infinite; }
+.solo-radar i {
+  position: absolute; inset: 0; border-radius: 50%; border: 3px solid #2fb5b0;
+  animation: radar 2.1s ease-out infinite; opacity: 0;
+}
+.solo-radar i:nth-child(2) { animation-delay: 0.7s; }
+.solo-radar i:nth-child(3) { animation-delay: 1.4s; }
+@keyframes radar { from { transform: scale(0.3); opacity: 0.9; } to { transform: scale(1); opacity: 0; } }
+
+.solo-found { animation: pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.25); }
+.solo-found-kicker { margin: 0; color: var(--flag); font-size: 40px; }
+.solo-vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; width: 100%; margin: 6px 0 10px; }
+.solo-vs-card { display: grid; justify-items: center; gap: 6px; padding: 16px 8px; border-radius: 20px; background: rgba(22, 58, 42, 0.06); animation: pop 0.45s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1.25) both; }
+.solo-vs-card.is-me { background: rgba(255, 211, 107, 0.35); animation-delay: 0s; }
+.solo-vs-card .preset-face { width: 64px; height: 64px; }
+.solo-vs-card b { font-family: var(--font-display); font-weight: 400; font-size: 24px; line-height: 1.05; overflow-wrap: anywhere; }
+.solo-vs-card span { font-weight: 800; font-size: 13px; color: var(--card-muted); }
+.solo-vs-mark { font-family: var(--font-display); font-size: 34px; color: var(--flag); }
+.solo-field { display: grid; gap: 6px; width: 100%; margin: 4px 0 10px; padding: 0; list-style: none; }
+.solo-field li { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border-radius: 16px; background: rgba(22, 58, 42, 0.06); text-align: left; animation: pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.25) both; }
+.solo-field li:first-child { background: rgba(255, 211, 107, 0.35); }
+.solo-field li:nth-child(2) { animation-delay: 0.08s; }
+.solo-field li:nth-child(3) { animation-delay: 0.16s; }
+.solo-field li:nth-child(4) { animation-delay: 0.24s; }
+.solo-field li:nth-child(5) { animation-delay: 0.32s; }
+.solo-field li:nth-child(6) { animation-delay: 0.4s; }
+.solo-field b { flex: 1; min-width: 0; font-family: var(--font-display); font-weight: 400; font-size: 20px; overflow-wrap: anywhere; }
+.solo-field b small { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--card-muted); }
+.solo-field > li > span { display: grid; justify-items: end; font-weight: 800; font-size: 12px; color: var(--card-muted); }
+.solo-bar { width: 100%; height: 4px; margin-top: 6px; border-radius: 4px; background: rgba(22, 58, 42, 0.1); overflow: hidden; }
+.solo-bar i { display: block; height: 100%; background: var(--card-ink); transform-origin: left; animation: solo-fill linear forwards; }
+@keyframes solo-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.match-table tr.is-me th { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.live-status .solo-stars { font-size: 11px; }
