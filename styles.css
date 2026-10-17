@@ -613,7 +613,7 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .locker-panel {
   min-height: 0;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   gap: 10px;
   padding-block: 14px calc(env(safe-area-inset-bottom, 0px) + 6px);
   border-radius: 22px 22px 0 0;
@@ -1106,3 +1106,39 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 @keyframes solo-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .match-table tr.is-me th { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .live-status .solo-stars { font-size: 11px; }
+
+/* ---------- Your name (Locker) and first-visit setup ---------- */
+.locker-name {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 12px;
+  margin-inline: max(var(--edge), env(safe-area-inset-left, 0px)) max(var(--edge), env(safe-area-inset-right, 0px));
+}
+.locker-name label { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--card-muted); }
+.locker-name input {
+  min-width: 0; min-height: var(--tap); padding: 0 14px; border: 2px solid rgba(22, 58, 42, 0.15); border-radius: 12px;
+  background: #fff; color: var(--card-ink); font-family: var(--font-display); font-size: 20px;
+}
+.locker-name input:focus { outline: none; border-color: var(--card-ink); }
+.locker-name-msg { grid-column: 1 / -1; margin: 0; font-weight: 700; font-size: 13px; color: var(--flag); }
+.locker-foot { display: grid; gap: 4px; padding-inline: max(var(--edge), env(safe-area-inset-left, 0px)) max(var(--edge), env(safe-area-inset-right, 0px)); }
+.locker-foot .primary-btn[hidden], .locker-foot .text-btn[hidden] { display: none; }
+.locker.is-setup .locker-name { padding: 10px 12px; border-radius: 16px; background: rgba(255, 211, 107, 0.4); }
+.locker.is-setup .locker-name input { border-color: var(--card-ink); }
+.locker.is-setup #btn-locker-reset { display: none; }
+#btn-locker-done.is-waiting { opacity: 0.5; }
+
+/* ---------- Your golfer on the home screen ---------- */
+.home-me {
+  display: grid; justify-items: center; gap: 0; margin-top: 4px; padding: 0 10px 4px; border: 0; border-radius: 22px;
+  background: none; color: var(--ink); font-family: var(--font-body); cursor: pointer;
+}
+.home-me[hidden] { display: none; }
+.home-me:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.home-me-canvas { display: block; width: 150px; height: 170px; pointer-events: none; }
+.home-me-name {
+  margin-top: -10px; padding: 4px 16px; border-radius: 999px; background: var(--kopi); color: var(--card-ink);
+  font-family: var(--font-display); font-size: 24px; line-height: 1.1; box-shadow: 0 3px 10px var(--ink-shade);
+  max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.home-me-edit { margin-top: 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; text-shadow: 0 1px 3px var(--ink-shade); }
+.home-me:active .home-me-name { transform: scale(0.96); }
+.locker.is-setup .locker-title { font-size: clamp(22px, 6.4vw, 30px); line-height: 1.05; }

@@ -31,6 +31,8 @@ export function createSession() {
     lookAhead: false,
     friendsHere: [],    // online: friends still playing this hole [{ id, name, strokes }]
     watching: null,     // online: id of the friend the camera is watching, or null for your ball
+    profile: null,      // { name } once you've made your golfer (profile.js)
+    setup: false,       // first visit: the Locker is in "Create your golfer" mode
   };
 
   return {

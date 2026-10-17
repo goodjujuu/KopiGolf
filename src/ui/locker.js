@@ -2,9 +2,12 @@ import * as THREE from 'three';
 import { LOCKER_SECTIONS, HEAD_FINISHES, GOLFER_PRESETS, loadLook, saveLook, sanitizeLook, randomLook, matchingPreset } from '../avatar/looks.js';
 import { buildAvatar } from '../avatar/avatar.js';
 import { patternPreview } from '../avatar/patterns.js';
+import { loadProfile, saveProfile, suggestedName, validName, cleanName, NAME_MIN } from '../profile.js';
 
 // The Locker: customise your golfer and clubs, with a live 3D preview you can spin.
 // Changes save on this device straight away and are sent to the game through onChange(look).
+// Your username is edited here too. A brand-new player lands here first ("setup"): they make
+// their golfer, pick a name and tap Let's go.
 
 export function createLocker(session, { onChange }) {
   const root = document.getElementById('locker');
@@ -15,6 +18,42 @@ export function createLocker(session, { onChange }) {
   const closeBtn = document.getElementById('btn-locker-close');
   const randomBtn = document.getElementById('btn-locker-random');
   const resetBtn = document.getElementById('btn-locker-reset');
+  const doneBtn = document.getElementById('btn-locker-done');
+  const titleEl = document.getElementById('locker-title');
+  const nameInput = document.getElementById('locker-name');
+  const nameMsg = document.getElementById('locker-name-msg');
+
+  // ----- your name -----
+  let profile = loadProfile();
+  session.set({ profile });
+  nameInput.value = profile?.name ?? suggestedName();
+  const showNameMsg = (text) => { nameMsg.hidden = !text; nameMsg.textContent = text; };
+  nameInput.addEventListener('input', () => {
+    showNameMsg('');
+    doneBtn.classList.toggle('is-waiting', !validName(nameInput.value));
+    // Already set up: a valid new name saves as you type.
+    if (profile && validName(nameInput.value) && cleanName(nameInput.value) !== profile.name) {
+      profile = saveProfile(nameInput.value, profile);
+      session.set({ profile });
+    }
+  });
+  nameInput.addEventListener('blur', () => {
+    if (profile && !validName(nameInput.value)) nameInput.value = profile.name; // never leave it blank
+  });
+  nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameInput.blur(); });
+
+  function finishSetup() {
+    if (!validName(nameInput.value)) {
+      showNameMsg(`Pick a name with at least ${NAME_MIN} letters so your friends know it's you.`);
+      nameInput.focus();
+      return;
+    }
+    profile = saveProfile(nameInput.value, profile);
+    // Came in on an invite link? Go straight to joining the room.
+    const next = session.state.online?.prefillCode ? 'tour' : 'home';
+    session.set({ profile, setup: false, screen: next });
+  }
+  doneBtn.addEventListener('click', finishSetup);
 
   let look = loadLook();
   let tab = 'golfer';
@@ -59,7 +98,7 @@ export function createLocker(session, { onChange }) {
 
   randomBtn.addEventListener('click', () => setLook(randomLook()));
   resetBtn.addEventListener('click', () => setLook({}));
-  closeBtn.addEventListener('click', () => session.set({ screen: 'home' }));
+  closeBtn.addEventListener('click', () => { if (!session.state.setup) session.set({ screen: 'home' }); });
 
   function renderAll() {
     tabs.forEach((btn) => btn.setAttribute('aria-selected', String(btn.dataset.tab === tab)));
@@ -100,12 +139,19 @@ export function createLocker(session, { onChange }) {
 
   session.subscribe((s) => {
     const open = s.screen === 'locker';
+    // Setup: no way back until you've got a name; a big Let's go instead.
+    root.classList.toggle('is-setup', !!s.setup);
+    closeBtn.hidden = !!s.setup;
+    doneBtn.hidden = !s.setup;
+    titleEl.textContent = s.setup ? 'Create your golfer' : 'Locker';
     if (open === !root.hidden) return;
     root.hidden = !open;
     if (open) {
       renderAll();
       preview.setLook(look);
       preview.start();
+      if (profile) nameInput.value = profile.name;
+      doneBtn.classList.toggle('is-waiting', !validName(nameInput.value));
     } else {
       preview.stop();
     }
@@ -116,7 +162,8 @@ export function createLocker(session, { onChange }) {
 }
 
 // ---------- 3D preview: the golfer on a little round of turf, drag to spin ----------
-function createPreview(canvas) {
+// (Also used for your golfer on the home screen.)
+export function createPreview(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;

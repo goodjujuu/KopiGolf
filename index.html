@@ -147,6 +147,11 @@
       <header class="home-head">
         <p class="home-kicker">Pocket golf with your kakis</p>
         <h1 class="home-title" id="home-title">Kopi<span>Golf</span></h1>
+        <button class="home-me" id="btn-home-me" type="button" aria-label="Your golfer. Open the Locker">
+          <canvas class="home-me-canvas" id="home-me-canvas" aria-hidden="true"></canvas>
+          <span class="home-me-name" id="home-me-name"></span>
+          <span class="home-me-edit">Edit in Locker</span>
+        </button>
       </header>
 
       <div class="home-cards">
@@ -225,13 +230,21 @@
       <p class="locker-hint" aria-hidden="true">Drag to spin</p>
     </div>
     <div class="locker-panel">
+      <div class="locker-name">
+        <label for="locker-name">Your name</label>
+        <input id="locker-name" type="text" maxlength="14" autocomplete="nickname" autocapitalize="words" spellcheck="false" placeholder="Pick a username" enterkeyhint="done">
+        <p class="locker-name-msg" id="locker-name-msg" hidden></p>
+      </div>
       <div class="locker-tabs" role="tablist" aria-label="Customise">
         <button class="locker-tab" type="button" role="tab" data-tab="golfer" aria-selected="true">Golfer</button>
         <button class="locker-tab" type="button" role="tab" data-tab="clubs" aria-selected="false">Clubs &amp; ball</button>
       </div>
       <div class="locker-chips" id="locker-chips"></div>
       <div class="locker-controls" id="locker-controls"></div>
-      <button class="text-btn" id="btn-locker-reset" type="button">Reset to default look</button>
+      <div class="locker-foot">
+        <button class="primary-btn" id="btn-locker-done" type="button" hidden>Let's go</button>
+        <button class="text-btn" id="btn-locker-reset" type="button">Reset to default look</button>
+      </div>
     </div>
   </section>
 

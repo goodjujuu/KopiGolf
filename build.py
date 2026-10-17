@@ -19,6 +19,7 @@ THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
 MODULES = [
     "src/config.js",
     "src/state.js",
+    "src/profile.js",
     "src/courses/biomes.js",
     "src/courses/pitches.js",
     "src/courses/obstacles.js",
@@ -64,6 +65,7 @@ MODULES = [
     "src/ui/match.js",
     "src/ui/online.js",
     "src/ui/solo.js",
+    "src/ui/homeMe.js",
     "src/ui/lineup.js",
     "src/main.js",
 ]

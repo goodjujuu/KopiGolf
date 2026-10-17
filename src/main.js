@@ -14,6 +14,7 @@ import { createTourScreen } from './ui/tour.js';
 import { createLineup } from './ui/lineup.js';
 import { createSoloPlay } from './game/soloPlay.js';
 import { createSoloUI } from './ui/solo.js';
+import { createHomeMe } from './ui/homeMe.js';
 import { lookForName } from './avatar/looks.js';
 
 // Entry point: wires state, 3D scene, rules, input and HUD together, and handles screen-level
@@ -102,11 +103,13 @@ createHome(session, {
 });
 
 let myLook = {};
+const homeMe = createHomeMe(session);
 createLocker(session, {
   onChange: (look) => {
     myLook = look;
     game.setLook(look);
     online?.setLook(look);
+    homeMe.setLook(look);
   },
 });
 document.getElementById('btn-open-locker').addEventListener('click', () => session.set({ screen: 'locker' }));
@@ -119,6 +122,24 @@ createOnlineUI(session, online, { toast: (t, sub) => hud.toast(t, sub) });
 // Solo: you against the crew (bots).
 var solo = createSoloPlay({ session, controller, catalog: CATALOG, friends: game.friends, toast: (t, sub) => hud.toast(t, sub), getLook: () => myLook });
 createSoloUI(session, solo, { getLook: () => myLook });
+
+// New here? Make your golfer and pick a name before anything else.
+if (!session.state.profile) session.set({ screen: 'locker', setup: true });
+// Your name fills in the name boxes (online rooms, player 1 in pass-the-phone).
+let lastName = session.state.profile?.name ?? null;
+session.subscribe((s) => {
+  const n = s.profile?.name ?? null;
+  if (!n || n === lastName) return;
+  const prev = lastName;
+  lastName = n;
+  const online = document.getElementById('online-name');
+  if (online && (!online.value || online.value === prev)) online.value = n;
+  const first = document.querySelector('#match-players input[data-index="0"]');
+  if (first && (/^Player \d$/.test(first.value) || first.value === prev || !first.value)) {
+    first.value = n;
+    first.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+});
 createMatchOverlay(session, {
   onTeeOff: () => {
     const m = session.state.match;
