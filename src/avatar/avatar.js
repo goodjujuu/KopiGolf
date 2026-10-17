@@ -53,6 +53,29 @@ function fabric(base, accent, pattern, repeat = [2, 2]) {
   }
   return fabricCache.get(key);
 }
+// A shirt number for the back of a football jersey.
+const numberCache = new Map();
+function numberMat(colour, text = '10') {
+  const key = `${colour}|${text}`;
+  if (!numberCache.has(key)) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.font = '900 96px "Lilita One", "Arial Black", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.strokeText(text, 64, 70);
+    ctx.fillStyle = colour;
+    ctx.fillText(text, 64, 70);
+    const tex = new THREE.CanvasTexture(canvas);
+    if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+    numberCache.set(key, new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+  }
+  return numberCache.get(key);
+}
 const LONG_SLEEVES = ['longsleeve', 'hoodie', 'jacket', 'shirt', 'sweater', 'rugby', 'windbreaker'];
 const capsule = (r, len) => new THREE.CapsuleGeometry(r, len, 6, 14);
 const sphere = (r, w = 22, h = 16) => new THREE.SphereGeometry(r, w, h);
@@ -149,6 +172,17 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
     collar.rotation.x = PI / 2 - 0.25;
     group.add(collar);
     group.add(mesh(new THREE.BoxGeometry(0.02, 0.07, 0.01), accentMat, 0, shoulderY - 0.05, frontZ));
+  } else if (look.top === 'jersey') {
+    // Football shirt: a V-neck in the trim colour, a little crest, and a big 10 on the back.
+    for (const side of [-1, 1]) {
+      const v = mesh(new THREE.BoxGeometry(0.016, 0.075, 0.012), accentMat, side * 0.022, shoulderY - 0.035, frontZ - 0.006);
+      v.rotation.z = -side * 0.5; // the two arms of the V
+      group.add(v);
+    }
+    group.add(mesh(new THREE.CircleGeometry(0.02, 12), accentMat, -torsoR * 0.42, shoulderY - torsoLen * 0.28, frontZ + 0.003));
+    const num = mesh(new THREE.PlaneGeometry(torsoR * 1.15, torsoR * 1.15), numberMat(look.topAccent), 0, torsoCentre + torsoLen * 0.05, -frontZ - 0.004);
+    num.rotation.y = PI;
+    group.add(num);
   } else if (look.top === 'tee' || look.top === 'longsleeve') {
     const ring = mesh(new THREE.TorusGeometry(0.058, 0.01, 6, 20), accentMat, 0, neckY - 0.03, 0);
     ring.rotation.x = PI / 2;
@@ -211,6 +245,11 @@ export function buildAvatar(look, { holdingClub = true } = {}) {
     if (holdingClub && side === 1) shoulder.rotation.x = -0.35;
     group.add(shoulder);
     shoulder.add(mesh(capsule(limbR * (tank ? 1 : 1.1), upperArm), tank ? skin : sleeveMat, 0, -upperArm / 2, 0));
+    if (look.top === 'jersey') { // trim round the sleeve end
+      const cuff = mesh(new THREE.TorusGeometry(limbR * 1.12, limbR * 0.2, 6, 16), accentMat, 0, -upperArm * 0.92, 0);
+      cuff.rotation.x = PI / 2;
+      shoulder.add(cuff);
+    }
     if (build.muscles) { // shoulder caps and a bit of bicep
       shoulder.add(mesh(sphere(limbR * 1.45, 14, 10), tank ? skin : sleeveMat, 0, -limbR * 0.2, 0));
       const bicep = mesh(sphere(limbR * 1.2, 12, 10), tank ? skin : sleeveMat, 0, -upperArm * 0.55, limbR * 0.35);
@@ -384,6 +423,19 @@ function addEarrings(head, look) {
   for (const side of [-1, 1]) {
     const x = side * HEAD_R * 1.0;
     if (look.ears === 'studs') head.add(mesh(sphere(0.009, 8, 6), m, x, -0.04, 0.01));
+    else if (look.ears === 'footballs') {
+      // A little chain with a mini football swinging off it.
+      head.add(mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.04, 5), m, x * 1.02, -0.065, 0.01));
+      const ball = new THREE.Group();
+      ball.position.set(x * 1.04, -0.105, 0.01);
+      ball.add(mesh(sphere(0.024, 14, 10), mat('#ffffff', { shine: 40 })));
+      const patch = mat('#1a1a1a');
+      for (const [a, b] of [[0, 0], [2.1, 0.5], [4.2, -0.4], [1, 2.2], [3.3, 2.6]]) {
+        // black patches: little spheres set into the ball's surface
+        ball.add(mesh(sphere(0.0085, 8, 6), patch, Math.cos(a) * Math.cos(b - 1.2) * 0.0198, Math.sin(b - 1.2) * 0.0198, Math.sin(a) * Math.cos(b - 1.2) * 0.0198));
+      }
+      head.add(ball);
+    }
     else {
       const hoop = mesh(new THREE.TorusGeometry(0.018, 0.0035, 6, 16), m, x, -0.058, 0.01);
       hoop.rotation.y = PI / 2;
@@ -623,6 +675,22 @@ function addHair(head, look) {
       const tail = mesh(capsule(0.04, 0.16), h, 0, -0.02, -HEAD_R * 1.05);
       tail.rotation.x = 0.25;
       head.add(tail);
+      return;
+    }
+    case 'undercut': {
+      // Clipper-short sides, a long top swept over to one side.
+      head.add(hairCap(HEAD_R * 1.01, 1.35, mat(look.hairColour, { shine: 5, opacity: 0.85 })));
+      if (hatOn) return;
+      const top = mesh(sphere(HEAD_R * 0.86, 20, 14), h, -0.012, HEAD_R * 0.62, 0.012);
+      top.scale.set(1.08, 0.52, 1.12);
+      top.rotation.z = 0.22;
+      head.add(top);
+      const sweep = mesh(capsule(0.042, 0.13), h, 0.05, HEAD_R * 0.62, HEAD_R * 0.55);
+      sweep.rotation.set(0.35, 0, PI / 2 + 0.45);
+      head.add(sweep);
+      const flop = mesh(sphere(0.05, 12, 10), h, 0.115, HEAD_R * 0.5, HEAD_R * 0.5);
+      flop.scale.set(0.8, 1.3, 0.8);
+      head.add(flop);
       return;
     }
     case 'pigtails': {
