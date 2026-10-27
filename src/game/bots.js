@@ -25,7 +25,7 @@ export const SKILLS = {
 // Who plays at what level.
 export const BOT_SKILL = {
   garet: 'pro', pramoth: 'amateur', drt: 'clubpro', steven: 'rookie', henny: 'amateur', eyas: 'clubpro',
-  faly: 'pro', weixiong: 'legend', gleb: 'rookie', matrickseah: 'clubpro', yunyu: 'pro', elloise: 'legend', javier: 'amateur', keenan: 'rookie', sangwon: 'pro', wolfgang: 'clubpro',
+  faly: 'pro', weixiong: 'legend', gleb: 'rookie', matrickseah: 'clubpro', yunyu: 'pro', elloise: 'legend', javier: 'amateur', keenan: 'rookie', sangwon: 'pro', wolfgang: 'clubpro', justinwong: 'pro',
 };
 
 // Pick `count` different crew members at random, leaving out anyone in `exclude` (preset ids).

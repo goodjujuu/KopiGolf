@@ -405,13 +405,30 @@ export const GOLFER_PRESETS = [
       headFinish: 'black', shaftColour: '#2a2d33', gripColour: '#e04848', ballColour: '#ff5050',
     },
   },
+  {
+    id: 'justinwong', name: 'Justin Wong', short: 'Justin', blurb: 'Two cars, driving gloves, always blue shoes',
+    look: {
+      build: 'regular', height: 'medium', skin: '#efc095', tattoos: 'none',
+      eyes: 'almond', eyeColour: '#1c1712', brows: 'straight', nose: 'button', mouth: 'smirk', cheeks: 'none',
+      hair: 'sidepart', hairColour: '#1c1712', facialHair: 'none',
+      hat: 'none', hatColour: '#1e2430', glasses: 'aviators', glassesColour: '#d9a93a', lensColour: '#2f6fd8',
+      top: 'polo', topColour: '#ffffff', topAccent: '#1e2430', topPattern: 'solid',
+      bottoms: 'trousers', bottomsColour: '#1e2430', bottomsAccent: '#ffffff', bottomsPattern: 'solid',
+      socksStyle: 'ankle', socksColour: '#3a63d8', socksPattern: 'solid',
+      shoesStyle: 'loafer', shoesColour: '#3a63d8', shoesAccent: '#3fa7e0', soleColour: '#ffffff',
+      gloves: 'both', glovesColour: '#7a5236', glovesAccent: '#c9a27a',
+      neck: 'none', wrist: 'watch', wristColour: '#d9a93a', ears: 'none',
+      headFinish: 'blue', shaftColour: '#3a63d8', gripColour: '#2b2f33', ballColour: '#5ab8ff',
+    },
+  },
 ];
 
 // A look for a player who isn't on this device's Locker (pass the phone): a crew member gets their
 // preset, anyone else a look generated from their name, so the same name always looks the same.
 export function lookForName(name) {
   const key = String(name ?? '').toLowerCase().replace(/[^a-z]/g, '');
-  const preset = GOLFER_PRESETS.find((p) => p.id === key || p.name.toLowerCase().replace(/[^a-z]/g, '') === key);
+  const norm = (t) => String(t ?? '').toLowerCase().replace(/[^a-z]/g, '');
+  const preset = GOLFER_PRESETS.find((p) => p.id === key || norm(p.name) === key || (p.short && norm(p.short) === key));
   if (preset) return sanitizeLook({ ...DEFAULT_LOOK, ...preset.look });
   let h = 2166136261;
   for (const ch of key || 'player') h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
