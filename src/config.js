@@ -87,7 +87,7 @@ export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 // Putter distance is how far it rolls on the green at full power.
 export const CLUB_ORDER = ['P', 'D', '3w', '3i', '4i', '5i', '6i', '7i', '8i', '9i', 'Pw', 'Sw', 'Lw'];
 export const CLUBS = {
-  P: { id: 'P', name: 'Putter', kind: 'putter', tier: 'putter', maxRoll: 16, maxBackswing: 0.7 },
+  P: { id: 'P', name: 'Putter', kind: 'putter', tier: 'putter', maxRoll: 22, maxBackswing: 0.7 },
   D: { id: 'D', name: 'Driver', kind: 'wood', tier: 'wood', yards: 280, launchDeg: 12 },
   '3w': { id: '3w', name: '3 wood', kind: 'wood', tier: 'wood', yards: 250, launchDeg: 14 },
   '3i': { id: '3i', name: '3 iron', kind: 'iron', tier: 'long', yards: 230, launchDeg: 17 },
@@ -130,7 +130,7 @@ export const PHYSICS = {
   captureSpeed: 2.6,     // roll slower than this over the cup and it drops
   // bounce: vertical speed kept · keep: horizontal speed kept on a bounce · roll: rolling friction
   surfaces: {
-    green: { bounce: 0.25, keep: 0.55, roll: 0.16 },
+    green: { bounce: 0.25, keep: 0.62, roll: 0.11 }, // quick greens: approaches release and run on
     fairway: { bounce: 0.3, keep: 0.6, roll: 0.32 },
     rough: { bounce: 0.22, keep: 0.45, roll: 0.6 },
     sand: { bounce: 0.08, keep: 0.25, roll: 1.4 },

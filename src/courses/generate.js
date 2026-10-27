@@ -479,8 +479,8 @@ function addDesignHazards({ design, spec, rng, R, path, total, width, greenRadiu
       const [fx, fz] = forward(a);
       const [rx, rz] = rightOf(a);
       const w = R(14, 18);
-      const lat = side * (greenRadius * 1.4 + 7 + w);
-      const fwd = side === 0 ? greenRadius + 7 + w : greenRadius * ahead;
+      const lat = side * (greenRadius * 1.4 + 10 + w);
+      const fwd = side === 0 ? greenRadius + 16 + w : greenRadius * ahead; // room for a ball to release on quick greens
       const e = { x: pin.x + rx * lat + fx * fwd, z: pin.z + rz * lat + fz * fwd, rx: side === 0 ? greenRadius * 2.4 : w, rz: side === 0 ? w : greenRadius + 22, yaw: a };
       if (safe(e, 3)) ponds.push(roundE(e));
     }
